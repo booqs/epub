@@ -86,22 +86,22 @@ export type XmlNode = {
 export type Xml = XmlNode[]
 
 export type FileProvider = {
-    read: (path: string) => AsyncResult<string>,
+    read: (path: string) => Promise<{
+        value?: string,
+        diags: Diagnostic[],
+    }>,
 }
 
-export type Diagnostic = string | {
+export type Diagnostic = {
     message: string,
     data?: any,
     severity?: DiagnosticSeverity,
+    scope?: DiagnosticScope[],
 }
 export type DiagnosticSeverity = 'error' | 'warning' | 'critical'
-export type Success<T> = {
-    value: T,
-    diags: Diagnostic[],
+export type DiagnosticScope = string | object
+export type Diagnostics = {
+    push(...diagnostic: Array<Diagnostic | string>): void,
+    all(): Diagnostic[],
+    scope(scope: DiagnosticScope): Diagnostics,
 }
-export type Failure = {
-    value?: undefined,
-    diags: Diagnostic[],
-}
-export type Result<T> = Success<T> | Failure
-export type AsyncResult<T> = Promise<Result<T>>

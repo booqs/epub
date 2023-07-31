@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser"
-import { Diagnostic, Result, XmlAttributes, XmlNode } from "./core"
+import { Diagnostics, XmlAttributes, XmlNode } from "./core"
 
 const Attributes = ':@'
 type FastXmlNode<Name extends string = string> = {
@@ -7,22 +7,18 @@ type FastXmlNode<Name extends string = string> = {
 } & {
     [Attributes]?: XmlAttributes,
 }
-export function parseXml(xml: string): Result<XmlNode[]> {
+export function parseXml(xml: string, diags: Diagnostics): XmlNode[] | undefined {
     let parser = new XMLParser({
         ignoreDeclaration: true,
         ignoreAttributes: false,
         attributeNamePrefix: '',
         preserveOrder: true,
     })
-    let diags: Diagnostic[] = []
     try {
         let fast: FastXmlNode[] = parser.parse(xml)
         try {
             let result = fast.map(f => preprocessXml(f, diags))
-            return {
-                value: result,
-                diags,
-            }
+            return result
         } catch (e) {
             diags.push({
                 message: 'Failed to preprocess XML',
@@ -31,9 +27,7 @@ export function parseXml(xml: string): Result<XmlNode[]> {
                     fast,
                 },
             })
-            return {
-                diags
-            }
+            return undefined
         }
     } catch (e) {
         diags.push({
@@ -43,13 +37,11 @@ export function parseXml(xml: string): Result<XmlNode[]> {
                 xml,
             },
         })
-        return {
-            diags
-        }
+        return undefined
     }
 }
 
-function preprocessXml(fast: FastXmlNode, diags: Diagnostic[]): XmlNode {
+function preprocessXml(fast: FastXmlNode, diags: Diagnostics): XmlNode {
     let result: XmlNode = {
         name: '',
         attrs: {},

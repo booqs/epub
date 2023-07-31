@@ -1,16 +1,10 @@
-import { Result } from "./core"
+import { Diagnostics } from "./core"
 
-export function checkMimetype(mimetype: string): Result<boolean> {
+export function checkMimetype(mimetype: string, diags: Diagnostics): boolean {
     if (mimetype != "application/epub+zip") {
-        return {
-            value: false,
-            diags: [
-                "mimetype file is not application/epub+zip",
-            ],
-        }
-    }
-    return {
-        value: true,
-        diags: [],
+        diags.push("mimetype file is not application/epub+zip")
+        return false
+    } else {
+        return true
     }
 }

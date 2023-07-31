@@ -1,6 +1,6 @@
-import { Diagnostic, XmlAttributes, ContentDirection } from "./core"
+import { Diagnostics, XmlAttributes, ContentDirection } from "./core"
 
-export function processVersion(version: string | undefined, diags: Diagnostic[]): string {
+export function processVersion(version: string | undefined, diags: Diagnostics): string {
     if (version === undefined) {
         diags.push(`version is missing`)
         return ''
@@ -8,7 +8,7 @@ export function processVersion(version: string | undefined, diags: Diagnostic[])
     return version
 }
 
-export function processUniqueIdentifier(uniqueIdentifier: string | undefined, diags: Diagnostic[]) {
+export function processUniqueIdentifier(uniqueIdentifier: string | undefined, diags: Diagnostics) {
     if (uniqueIdentifier === undefined) {
         diags.push(`unique_identifier is missing`)
         return ''
@@ -16,15 +16,15 @@ export function processUniqueIdentifier(uniqueIdentifier: string | undefined, di
     return uniqueIdentifier
 }
 
-export function processPrefix(prefix: string | undefined, diags: Diagnostic[]) {
+export function processPrefix(prefix: string | undefined, diags: Diagnostics) {
     return prefix
 }
 
-export function processLang(lang: string | undefined, diags: Diagnostic[]) {
+export function processLang(lang: string | undefined, diags: Diagnostics) {
     return lang
 }
 
-export function processDir(dir: string | undefined, diags: Diagnostic[]): ContentDirection | undefined {
+export function processDir(dir: string | undefined, diags: Diagnostics): ContentDirection | undefined {
     switch (dir) {
         case 'auto':
         case 'ltr':
@@ -38,7 +38,7 @@ export function processDir(dir: string | undefined, diags: Diagnostic[]): Conten
     }
 }
 
-export function expectAttributes(attributes: XmlAttributes, expected: string[], diags: Diagnostic[]) {
+export function expectAttributes(attributes: XmlAttributes, expected: string[], diags: Diagnostics) {
     for (let key of Object.keys(attributes)) {
         if (!expected.includes(key)) {
             diags.push({

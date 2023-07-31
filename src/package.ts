@@ -1,23 +1,27 @@
 import {
     expectAttributes, processDir, processLang, processPrefix, processUniqueIdentifier, processVersion,
 } from "./attributes"
-import { Diagnostic, PackageDocument, PackageMetadata, Result, Xml, XmlAttributes } from "./core"
+import { Diagnostics, PackageDocument, PackageMetadata, Xml, XmlAttributes } from "./core"
 import { processPackageMetadata } from "./metadata"
 
-export function processPackageXml(packageXml: Xml): Result<Omit<PackageDocument, 'fullPath'>> {
-    let diags: Diagnostic[] = []
+export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<PackageDocument, 'fullPath'> | undefined {
     let [root, ...restNodes] = packageXml
     if (restNodes.length > 0) {
         diags.push(`package.xml should have exactly one rootfile element, got ${packageXml.length}`)
     }
     if (root.name !== 'package') {
         diags.push(`root element should be package, got: ${root.name}`)
-        return { diags }
+        return undefined
     }
     let {
         version, 'unique-identifier': uniqueIdentifier, 'prefix': prefix, 'xml:lang': lang, 'dir': dir,
         ...rest
     } = root.attrs ?? {}
+    expectAttributes(
+        rest,
+        ['xmlns:opf', 'xmlns:dc', 'xmlns:dcterms', 'xmlns:xsi', 'xmlns'],
+        diags.scope(root.name),
+    )
     let metadata: PackageMetadata | undefined
     for (let node of root.children ?? []) {
         switch (node.name) {
@@ -29,13 +33,13 @@ export function processPackageXml(packageXml: Xml): Result<Omit<PackageDocument,
                     })
                     continue
                 }
-                metadata = processPackageMetadata(node, diags)
+                metadata = processPackageMetadata(node, diags.scope('metadata'))
                 break
         }
     }
     if (metadata === undefined) {
         diags.push(`package metadata is missing`)
-        return { diags }
+        return undefined
     }
     uniqueIdentifier = processUniqueIdentifier(uniqueIdentifier, diags)
     let uid = metadata.identifiers.find(id => id.id === uniqueIdentifier)?.value
@@ -43,25 +47,13 @@ export function processPackageXml(packageXml: Xml): Result<Omit<PackageDocument,
         diags.push(`unique-identifier ${uniqueIdentifier} is not defined in metadata`)
     }
     return {
-        value: {
-            version: processVersion(version, diags),
-            uid,
-            uniqueIdentifier,
-            prefix: processPrefix(prefix, diags),
-            lang: processLang(lang, diags),
-            dir: processDir(dir, diags),
-            otherAttributes: processRest(rest, diags),
-            metadata,
-        },
-        diags,
+        version: processVersion(version, diags),
+        uid,
+        uniqueIdentifier,
+        prefix: processPrefix(prefix, diags),
+        lang: processLang(lang, diags),
+        dir: processDir(dir, diags),
+        otherAttributes: rest,
+        metadata,
     }
-}
-
-function processRest(rest: XmlAttributes, diags: Diagnostic[]) {
-    expectAttributes(
-        rest,
-        ['xmlns:opf', 'xmlns:dc', 'xmlns:dcterms', 'xmlns:xsi', 'xmlns'],
-        diags,
-    )
-    return rest
 }

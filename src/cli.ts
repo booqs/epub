@@ -39,7 +39,12 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
             }
             const file = (await zip).file(path)
             if (!file) {
-                return { diags: [`File ${path} not found in zip archive`] }
+                return {
+                    diags: [{
+                        message: `File ${path} not found in zip archive`,
+                        severity: 'critical',
+                    }]
+                }
             }
 
             const content = await file.async('text')
