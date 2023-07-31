@@ -1,14 +1,8 @@
 import { expectAttributes, processDir, processLang } from "./attributes"
 import { Diagnostic, PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier } from "./core"
-import { isEmptyObject } from "./utils"
 
 export function processPackageMetadata(node: XmlNode, diags: Diagnostic[]): PackageMetadata | undefined {
-    if (!isEmptyObject(node.attrs)) {
-        diags.push({
-            message: `metadata element has unexpected attributes`,
-            data: node.attrs,
-        })
-    }
+    expectAttributes(node.attrs ?? {}, [], diags)
     let identifiers: MetadataIdentifier[] = []
     let titles: MetadataTitle[] = []
     for (let child of node.children ?? []) {
@@ -49,12 +43,7 @@ function processTitle(node: XmlNode, diags: Diagnostic[]): MetadataTitle | undef
         '#text': text,
         ...rest
     } = node.attrs ?? {}
-    if (!isEmptyObject(rest)) {
-        diags.push({
-            message: `title element has unexpected attributes`,
-            data: rest,
-        })
-    }
+    expectAttributes(rest, [], diags)
     if (!text) {
         diags.push(`title element is missing text`)
         return undefined

@@ -41,7 +41,10 @@ export function processDir(dir: string | undefined, diags: Diagnostic[]): Conten
 export function expectAttributes(attributes: XmlAttributes, expected: string[], diags: Diagnostic[]) {
     for (let key of Object.keys(attributes)) {
         if (!expected.includes(key)) {
-            diags.push(`Unexpected attribute: ${key}`)
+            diags.push({
+                message: `Unexpected attribute: ${key}`,
+                severity: 'warning',
+            })
         }
     }
 }

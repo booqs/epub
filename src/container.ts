@@ -1,5 +1,5 @@
+import { expectAttributes } from "./attributes"
 import { Result, Container, Diagnostic, RootFile, Xml, XmlNode } from "./core"
-import { isEmptyObject } from "./utils"
 
 export function processContainerXml(containerXml: Xml): Result<Container> {
     let diags: Diagnostic[] = []
@@ -19,9 +19,7 @@ export function processContainerXml(containerXml: Xml): Result<Container> {
         if (xmlns !== 'urn:oasis:names:tc:opendocument:xmlns:container') {
             diags.push(`container xmlns should be urn:oasis:names:tc:opendocument:xmlns:container, got: ${xmlns}`)
         }
-        if (!isEmptyObject(rest)) {
-            diags.push(`container has unexpected attributes: ${Object.keys(rest).join(', ')}`)
-        }
+        expectAttributes(rest, [], diags)
         if (node.children?.length != 1) {
             diags.push({
                 message: `container should have exactly one rootfiles element`,
@@ -42,19 +40,17 @@ export function processContainerXml(containerXml: Xml): Result<Container> {
 
 function processContainerChild(containerChild: XmlNode, diags: Diagnostic[]): RootFile[] {
     if (containerChild.name === 'links') {
-        diags.push('links element is not supported')
+        diags.push({
+            message: 'links element is not supported',
+            severity: 'warning',
+        })
         return []
     }
     if (containerChild.name !== 'rootfiles') {
         diags.push(`Unexpected container child: ${containerChild.name}`)
         return []
     }
-    if (!isEmptyObject(containerChild.attrs)) {
-        diags.push({
-            message: `rootfiles element has unexpected attributes`,
-            data: containerChild.attrs,
-        })
-    }
+    expectAttributes(containerChild.attrs ?? {}, [], diags)
     let result: RootFile[] = []
     for (let node of containerChild.children ?? []) {
         if (node.name !== 'rootfile') {
@@ -62,12 +58,7 @@ function processContainerChild(containerChild: XmlNode, diags: Diagnostic[]): Ro
             continue
         }
         let { 'full-path': fullPath, 'media-type': mediaType, ...rest } = node.attrs ?? {}
-        if (!isEmptyObject(rest)) {
-            diags.push({
-                message: `rootfile element has unexpected attributes`,
-                data: rest,
-            })
-        }
+        expectAttributes(rest, [], diags)
         if (mediaType !== 'application/oebps-package+xml') {
             diags.push(`rootfile media-type should be application/oebps-package+xml, got: ${mediaType}`)
         }

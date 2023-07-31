@@ -92,7 +92,9 @@ export type FileProvider = {
 export type Diagnostic = string | {
     message: string,
     data?: any,
+    severity?: DiagnosticSeverity,
 }
+export type DiagnosticSeverity = 'error' | 'warning' | 'critical'
 export type Success<T> = {
     value: T,
     diags: Diagnostic[],
