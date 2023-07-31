@@ -1,6 +1,7 @@
 import { processContainerXml } from "./container"
-import { AsyncResult, Diagnostic, Epub, FileProvider, Xml } from "./core"
+import { AsyncResult, Diagnostic, Epub, FileProvider, PackageDocument, RootFile, Xml } from "./core"
 import { checkMimetype } from "./mimetype"
+import { processPackageXml } from "./package"
 import { getValue } from "./utils"
 import { parseXml } from "./xml"
 
@@ -27,9 +28,11 @@ export async function parseEpub(fileProvider: FileProvider): AsyncResult<Epub> {
     let metadataXml = getValue(await loadOptionalXml(fileProvider, "META-INF/metadata.xml"), diags)
     let rightsXml = getValue(await loadOptionalXml(fileProvider, "META-INF/rights.xml"), diags)
     let signaturesXml = getValue(await loadOptionalXml(fileProvider, "META-INF/signatures.xml"), diags)
+    let packages = getValue(await loadPackages(fileProvider, container.rootFiles), diags) ?? []
     return {
         value: {
             container,
+            packages,
             encryption: encryptionXml,
             manifest: manifestXml,
             metadata: metadataXml,
@@ -37,6 +40,36 @@ export async function parseEpub(fileProvider: FileProvider): AsyncResult<Epub> {
             signatures: signaturesXml,
         },
         diags,
+    }
+}
+
+async function loadPackages(fileProvider: FileProvider, rootFiles: RootFile[]): AsyncResult<PackageDocument[]> {
+    let diags: Diagnostic[] = []
+    let packages: PackageDocument[] = []
+    for (let rootFile of rootFiles) {
+        let packageDoc = getValue(await loadPackage(fileProvider, rootFile), diags)
+        if (packageDoc !== undefined) {
+            packages.push(packageDoc)
+        }
+    }
+    return { value: packages, diags }
+}
+
+async function loadPackage(fileProvider: FileProvider, rootFile: RootFile): AsyncResult<PackageDocument> {
+    let diags: Diagnostic[] = []
+    let packageXml = getValue(await loadXml(fileProvider, rootFile.fullPath), diags)
+    if (!packageXml) {
+        return { diags }
+    }
+    let packageDocument = getValue(processPackageXml(packageXml), diags)
+    if (!packageDocument) {
+        return { diags }
+    }
+    return {
+        value: {
+            ...packageDocument,
+            fullPath: rootFile.fullPath,
+        }, diags
     }
 }
 

@@ -17,14 +17,31 @@ export function parseXml(xml: string): Result<XmlNode[]> {
     let diags: Diagnostic[] = []
     try {
         let fast: FastXmlNode[] = parser.parse(xml)
-        return {
-            value: fast.map(f => preprocessXml(f, diags)),
-            diags,
+        try {
+            let result = fast.map(f => preprocessXml(f, diags))
+            return {
+                value: result,
+                diags,
+            }
+        } catch (e) {
+            diags.push({
+                message: 'Failed to preprocess XML',
+                data: {
+                    error: e,
+                    fast,
+                },
+            })
+            return {
+                diags
+            }
         }
     } catch (e) {
         diags.push({
             message: 'Failed to parse XML',
-            data: e as object,
+            data: {
+                error: e,
+                xml,
+            },
         })
         return {
             diags
@@ -43,7 +60,16 @@ function preprocessXml(fast: FastXmlNode, diags: Diagnostic[]): XmlNode {
             result.attrs = value as XmlAttributes
         } else if (result.name == '') {
             result.name = key
-            result.children = (value as FastXmlNode[]).map(v => preprocessXml(v, diags))
+            if (key === '#text') {
+                // TODO: better support for string values?
+                // Hacky
+                result.children = []
+                result.attrs = {
+                    '#text': value as any as string,
+                }
+            } else {
+                result.children = (value as FastXmlNode[]).map(v => preprocessXml(v, diags))
+            }
         } else {
             diags.push({
                 message: `Unexpected xml object, too many keys`,

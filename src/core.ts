@@ -4,6 +4,7 @@ export type Epub = {
     // The REQUIRED container.xml file in the META-INF directory identifies the package documents available in the OCF abstract container.
     // This library processe the container.xml file and extracts relevant information from it.
     container: Container,
+    packages: PackageDocument[],
     // The OPTIONAL encryption.xml file in the META-INF directory holds all encryption information on the contents of the container. If an EPUB creator encrypts any resources within the container, they MUST include an encryption.xml file to provide information about the encryption used.
     // Spec provide further details on the encryption.xml file, but this library doesn't support processing it.
     encryption?: Xml,
@@ -30,6 +31,22 @@ export type RootFile = {
     mediaType: MediaType,
 }
 export type MediaType = string
+export type PackageDocument = {
+    // Full path to map to the root file.
+    fullPath: string,
+    uniqueIdentifier: string,
+    // Version is required by the spec, but this library doesn't enforce it.
+    version?: string,
+    dir?: Dir,
+    id?: string,
+    // The prefix attribute defines prefix mappings for use in property values.
+    // Spec elaborate on how prefix mappings are defined, but this library doesn't support processing them.
+    prefix?: string,
+    // This is xml:lang
+    lang?: string,
+    otherAttributes?: XmlAttributes,
+}
+export type Dir = 'auto' | 'rtl' | 'ltr'
 export type XmlAttributes = {
     [key: string]: string,
 }
