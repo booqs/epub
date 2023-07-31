@@ -11,5 +11,9 @@ module.exports = {
     ],
     rules: {
         "semi": ["error", "never"],
+        "prefer-const": "off",
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-explicit-any": "off",
     },
 }
