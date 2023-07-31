@@ -1,6 +1,6 @@
 import { expectAttributes, processDir, processLang } from "./attributes"
 import {
-    PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, Diagnostics, MetadataLanguage,
+    PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, Diagnostics, MetadataLanguage, DublinCoreElement, DublinCore,
 } from "./core"
 
 export function processPackageMetadata(node: XmlNode, diags: Diagnostics): PackageMetadata | undefined {
@@ -8,6 +8,19 @@ export function processPackageMetadata(node: XmlNode, diags: Diagnostics): Packa
     let identifiers: MetadataIdentifier[] = []
     let titles: MetadataTitle[] = []
     let languages: MetadataLanguage[] = []
+    let dublinCore: DublinCore = {}
+    function addDublinCore(node: XmlNode) {
+        let element = processDublinCoreElement(node, diags)
+        if (element) {
+            let key = (node.name.substring(3) + 's') as keyof DublinCore
+            let array = dublinCore[key]
+            if (!array) {
+                array = []
+                dublinCore[key] = array
+            }
+            array.push(element)
+        }
+    }
     for (let child of node.children ?? []) {
         switch (child.name) {
             case 'dc:identifier':
@@ -19,11 +32,30 @@ export function processPackageMetadata(node: XmlNode, diags: Diagnostics): Packa
             case 'dc:language':
                 pushIfDefined(languages, processLanguage(child, diags))
                 break
+            case 'dc:contributor':
+            case 'dc:coverage':
+            case 'dc:creator':
+            case 'dc:date':
+            case 'dc:description':
+            case 'dc:format':
+            case 'dc:publisher':
+            case 'dc:relation':
+            case 'dc:rights':
+            case 'dc:source':
+            case 'dc:subject':
+            case 'dc:type':
+                addDublinCore(child)
+                break
+            default:
+                diags.push(`unexpected element ${child.name}`)
+                break
         }
     }
     return {
         titles,
         identifiers,
+        languages,
+        ...dublinCore,
     }
 }
 
@@ -79,6 +111,30 @@ function processLanguage(node: XmlNode, diags: Diagnostics): MetadataLanguage | 
     return {
         id,
         value: text,
+    }
+}
+
+function processDublinCoreElement(node: XmlNode, diags: Diagnostics): DublinCoreElement | undefined {
+    let {
+        dir, id, 'xml:lang': lang,
+        '#text': text,
+        ...rest
+    } = node.attrs ?? {}
+    expectAttributes(
+        rest,
+        ['opf:event', 'opf:file-as', 'opf:role', 'opf:scheme'],
+        diags.scope(node.name),
+    )
+    if (!text) {
+        diags.push(`${node.name} element is missing text`)
+        return undefined
+    }
+    return {
+        id,
+        lang: processLang(lang, diags),
+        dir: processDir(dir, diags),
+        value: text,
+        extra: rest,
     }
 }
 

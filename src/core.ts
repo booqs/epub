@@ -55,6 +55,21 @@ export type PackageDocument = {
 export type PackageMetadata = {
     titles: MetadataTitle[],
     identifiers: MetadataIdentifier[],
+    languages: MetadataLanguage[],
+} & DublinCore
+export type DublinCore = {
+    contributors?: DublinCoreElement[],
+    coverages?: DublinCoreElement[],
+    creators?: DublinCoreElement[],
+    dates?: DublinCoreElement[],
+    descriptions?: DublinCoreElement[],
+    formats?: DublinCoreElement[],
+    publishers?: DublinCoreElement[],
+    relations?: DublinCoreElement[],
+    rights?: DublinCoreElement[],
+    sources?: DublinCoreElement[],
+    subjects?: DublinCoreElement[],
+    types?: DublinCoreElement[],
 }
 export type MetadataTitle = {
     value: string,
@@ -68,10 +83,10 @@ export type MetadataIdentifier = {
 }
 export type DublinCoreElement = {
     value: string,
-    name: string,
     id?: string,
     dir?: ContentDirection,
     lang?: Language,
+    extra?: XmlAttributes,
 }
 export type ContentDirection = 'auto' | 'rtl' | 'ltr'
 export type Language = string
