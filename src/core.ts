@@ -53,23 +53,13 @@ export type PackageDocument = {
     otherAttributes?: XmlAttributes,
 }
 export type PackageMetadata = {
-    titles: MetadataTitle[],
-    identifiers: MetadataIdentifier[],
-    languages: MetadataLanguage[],
+    title: MetadataTitle[],
+    identifier: MetadataIdentifier[],
+    language: MetadataLanguage[],
 } & DublinCore
+export type DublinCoreKeys = 'contributor' | 'coverage' | 'creator' | 'date' | 'description' | 'format' | 'publisher' | 'relation' | 'right' | 'source' | 'subject' | 'type'
 export type DublinCore = {
-    contributors?: DublinCoreElement[],
-    coverages?: DublinCoreElement[],
-    creators?: DublinCoreElement[],
-    dates?: DublinCoreElement[],
-    descriptions?: DublinCoreElement[],
-    formats?: DublinCoreElement[],
-    publishers?: DublinCoreElement[],
-    relations?: DublinCoreElement[],
-    rights?: DublinCoreElement[],
-    sources?: DublinCoreElement[],
-    subjects?: DublinCoreElement[],
-    types?: DublinCoreElement[],
+    [key in DublinCoreKeys]?: DublinCoreElement[];
 }
 export type MetadataTitle = {
     value: string,

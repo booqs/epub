@@ -5,14 +5,14 @@ import {
 
 export function processPackageMetadata(node: XmlNode, diags: Diagnostics): PackageMetadata | undefined {
     expectAttributes(node.attrs ?? {}, [], diags.scope(node.name))
-    let identifiers: MetadataIdentifier[] = []
-    let titles: MetadataTitle[] = []
-    let languages: MetadataLanguage[] = []
+    let identifier: MetadataIdentifier[] = []
+    let title: MetadataTitle[] = []
+    let language: MetadataLanguage[] = []
     let dublinCore: DublinCore = {}
     function addDublinCore(node: XmlNode) {
         let element = processDublinCoreElement(node, diags)
         if (element) {
-            let key = (node.name.substring(3) + 's') as keyof DublinCore
+            let key = (node.name.substring(3)) as keyof DublinCore
             let array = dublinCore[key]
             if (!array) {
                 array = []
@@ -24,13 +24,13 @@ export function processPackageMetadata(node: XmlNode, diags: Diagnostics): Packa
     for (let child of node.children ?? []) {
         switch (child.name) {
             case 'dc:identifier':
-                pushIfDefined(identifiers, processIdentifier(child, diags))
+                pushIfDefined(identifier, processIdentifier(child, diags))
                 break
             case 'dc:title':
-                pushIfDefined(titles, processTitle(child, diags))
+                pushIfDefined(title, processTitle(child, diags))
                 break
             case 'dc:language':
-                pushIfDefined(languages, processLanguage(child, diags))
+                pushIfDefined(language, processLanguage(child, diags))
                 break
             case 'dc:contributor':
             case 'dc:coverage':
@@ -52,9 +52,9 @@ export function processPackageMetadata(node: XmlNode, diags: Diagnostics): Packa
         }
     }
     return {
-        titles,
-        identifiers,
-        languages,
+        title,
+        identifier,
+        language,
         ...dublinCore,
     }
 }

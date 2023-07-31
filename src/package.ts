@@ -42,7 +42,7 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
         return undefined
     }
     uniqueIdentifier = processUniqueIdentifier(uniqueIdentifier, diags)
-    let uid = metadata.identifiers.find(id => id.id === uniqueIdentifier)?.value
+    let uid = metadata.identifier.find(id => id.id === uniqueIdentifier)?.value
     if (!uid) {
         diags.push(`unique-identifier ${uniqueIdentifier} is not defined in metadata`)
     }
