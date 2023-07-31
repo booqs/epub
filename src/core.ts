@@ -50,7 +50,7 @@ export type PackageDocument = {
     prefix?: string,
     // This is xml:lang
     lang?: Language,
-    otherAttributes?: XmlAttributes,
+    extra?: XmlAttributes,
 }
 export type PackageMetadata = {
     title: MetadataTitle[],
@@ -70,6 +70,7 @@ export type MetadataTitle = {
 export type MetadataIdentifier = {
     value: string,
     id?: string,
+    extra?: XmlAttributes,
 }
 export type DublinCoreElement = {
     value: string,
@@ -83,6 +84,7 @@ export type Language = string
 export type MetadataLanguage = {
     value: string,
     id?: string,
+    extra?: XmlAttributes,
 }
 export type XmlAttributes = {
     [key: string]: string,

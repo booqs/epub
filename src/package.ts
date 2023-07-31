@@ -3,6 +3,7 @@ import {
 } from "./attributes"
 import { Diagnostics, PackageDocument, PackageMetadata, Xml, XmlAttributes } from "./core"
 import { processPackageMetadata } from "./metadata"
+import { optionalExtra } from "./utils"
 
 export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<PackageDocument, 'fullPath'> | undefined {
     let [root, ...restNodes] = packageXml
@@ -53,7 +54,7 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
         prefix: processPrefix(prefix, diags),
         lang: processLang(lang, diags),
         dir: processDir(dir, diags),
-        otherAttributes: rest,
+        ...optionalExtra(rest),
         metadata,
     }
 }

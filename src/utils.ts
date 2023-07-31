@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticScope, Diagnostics } from "./core"
+import { Diagnostic, DiagnosticScope, Diagnostics, XmlAttributes } from "./core"
 
 export function diagnosticsToString(diagnostics: Diagnostic[]): string {
     return diagnostics.map(diagnosticToString).join('\n')
@@ -47,4 +47,13 @@ export function diagnostics(topScope: DiagnosticScope): Diagnostics {
             return scoped
         },
     }
+}
+
+export type EmptyObject = Record<string, never>
+export function optionalExtra(obj: XmlAttributes | undefined): {
+    extra?: XmlAttributes
+} | EmptyObject {
+    return obj && Object.keys(obj).length > 0
+        ? { extra: obj }
+        : {}
 }

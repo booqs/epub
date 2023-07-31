@@ -2,6 +2,7 @@ import { expectAttributes, processDir, processLang } from "./attributes"
 import {
     PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, Diagnostics, MetadataLanguage, DublinCoreElement, DublinCore,
 } from "./core"
+import { optionalExtra } from "./utils"
 
 export function processPackageMetadata(node: XmlNode, diags: Diagnostics): PackageMetadata | undefined {
     expectAttributes(node.attrs ?? {}, [], diags.scope(node.name))
@@ -72,6 +73,7 @@ function processIdentifier(node: XmlNode, diags: Diagnostics): MetadataIdentifie
     return {
         id,
         value: text,
+        ...optionalExtra(rest),
     }
 }
 
@@ -111,6 +113,7 @@ function processLanguage(node: XmlNode, diags: Diagnostics): MetadataLanguage | 
     return {
         id,
         value: text,
+        ...optionalExtra(rest),
     }
 }
 
@@ -134,7 +137,7 @@ function processDublinCoreElement(node: XmlNode, diags: Diagnostics): DublinCore
         lang: processLang(lang, diags),
         dir: processDir(dir, diags),
         value: text,
-        extra: rest,
+        ...optionalExtra(rest),
     }
 }
 
