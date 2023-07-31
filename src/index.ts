@@ -24,7 +24,7 @@ export async function parseEpub(fileProvider: FileProvider): AsyncResult<Epub> {
             ]
         }
     } else {
-        let container = getValue(await readContainer(containerFile), diags)
+        container = getValue(await readContainer(containerFile), diags)
         if (container == undefined) {
             diags.push("Failed to parse container.xml")
             container = {

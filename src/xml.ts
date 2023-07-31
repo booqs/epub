@@ -10,7 +10,12 @@ export type Xml = {
     }
 }
 export function parseXml(xml: string): Result<Xml> {
-    let parser = new XMLParser()
+    let parser = new XMLParser({
+        ignoreDeclaration: true,
+        ignoreAttributes: false,
+        attributesGroupName: '@',
+        attributeNamePrefix: '',
+    })
     try {
         let value = parser.parse(xml)
         return {

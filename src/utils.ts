@@ -7,5 +7,13 @@ export function getValue<T>(result: Result<T>, diagnostics: Diagnostic[]): T | u
 }
 
 export function isEmptyObject(obj: any): boolean {
-    return obj === undefined || Object.keys(obj).length === 0 && obj.constructor === Object
+    return obj === undefined || obj === '' || (Object.keys(obj).length === 0 && obj.constructor === Object)
+}
+
+export function diagnosticsToString(diagnostics: Diagnostic[]): string {
+    return diagnostics.map(diagnosticToString).join('\n')
+}
+
+export function diagnosticToString(diagnostic: Diagnostic): string {
+    return typeof diagnostic === 'string' ? diagnostic : JSON.stringify(diagnostic)
 }

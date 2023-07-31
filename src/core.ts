@@ -16,7 +16,7 @@ export type FileProvider = {
 
 export type Diagnostic = string | {
     message: string,
-    data?: object,
+    data?: any,
 }
 export type Success<T> = {
     value: T,
