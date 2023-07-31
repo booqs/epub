@@ -1,45 +1,70 @@
 import { XMLParser } from "fast-xml-parser"
-import { Result } from "./core"
+import { Diagnostic, Result } from "./core"
 
-export type XmlValue = string | Xml | Xml[]
-export type Xml = {
-    [key: string]: XmlValue,
-} & {
-    '@'?: {
-        [key: string]: string,
-    }
+export type XmlAttributes = {
+    [key: string]: string,
 }
-export function parseXml(xml: string): Result<Xml> {
+export type XmlNode = {
+    name: string,
+    attrs?: XmlAttributes,
+    children?: XmlNode[],
+}
+
+const Attributes = ':@'
+type FastXmlNode<Name extends string = string> = {
+    [key in Name]: FastXmlNode[];
+} & {
+    [Attributes]?: XmlAttributes,
+}
+export function parseXml(xml: string): Result<XmlNode[]> {
     let parser = new XMLParser({
         ignoreDeclaration: true,
         ignoreAttributes: false,
-        attributesGroupName: '@',
         attributeNamePrefix: '',
+        preserveOrder: true,
     })
+    let diags: Diagnostic[] = []
     try {
-        let value = parser.parse(xml)
+        let fast: FastXmlNode[] = parser.parse(xml)
         return {
-            value,
-            diags: [],
+            value: fast.map(f => preprocessXml(f, diags)),
+            diags,
         }
     } catch (e) {
+        diags.push({
+            message: 'Failed to parse XML',
+            data: e as object,
+        })
         return {
-            diags: [{
-                message: 'Failed to parse XML',
-                data: e as object,
-            }]
+            diags
         }
     }
 }
 
-export function toArray(xmlValue: XmlValue): Xml[] {
-    if (typeof xmlValue == 'string') {
-        return [{
-            '#text': xmlValue,
-        }]
-    } else if (Array.isArray(xmlValue)) {
-        return xmlValue
-    } else {
-        return [xmlValue]
+function preprocessXml(fast: FastXmlNode, diags: Diagnostic[]): XmlNode {
+    let result: XmlNode = {
+        name: '',
+        attrs: {},
+        children: [],
     }
+    for (let [key, value] of Object.entries(fast)) {
+        if (key == Attributes) {
+            result.attrs = value as XmlAttributes
+        } else if (result.name == '') {
+            result.name = key
+            result.children = (value as FastXmlNode[]).map(v => preprocessXml(v, diags))
+        } else {
+            diags.push({
+                message: `Unexpected xml object, too many keys`,
+                data: fast,
+            })
+        }
+    }
+    if (result.name == '') {
+        diags.push({
+            message: 'Unexpected xml object, no keys',
+            data: fast,
+        })
+    }
+    return result
 }

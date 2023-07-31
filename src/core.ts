@@ -6,7 +6,7 @@ export type Container = {
     rootFiles: RootFile[],
 }
 export type RootFile = {
-    path: string,
+    fullPath: string,
     mediaType: MediaType,
 }
 

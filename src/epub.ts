@@ -1,18 +1,9 @@
-import { readContainer } from "./container"
-import { AsyncResult, Container, Diagnostic, Epub, FileProvider } from "./core"
+import { processContainerXml } from "./container"
+import { AsyncResult, Diagnostic, Epub, FileProvider } from "./core"
 import { checkMimetype } from "./mimetype"
 import { getValue } from "./utils"
-import { Xml, parseXml } from "./xml"
+import { XmlNode, parseXml } from "./xml"
 
-// TODO: remove
-const defaultContainer: Container = {
-    rootFiles: [
-        {
-            path: "OEBPS/content.opf",
-            mediaType: "application/oebps-package+xml",
-        }
-    ]
-}
 export async function parseEpub(fileProvider: FileProvider): AsyncResult<Epub> {
     const diags: Diagnostic[] = []
     const mimetype = getValue(await fileProvider.read("mimetype"), diags)
@@ -22,26 +13,14 @@ export async function parseEpub(fileProvider: FileProvider): AsyncResult<Epub> {
         getValue(await checkMimetype(mimetype), diags)
     }
     let containerXml = getValue(await loadXml(fileProvider, "META-INF/container.xml"), diags)
-    let container: Container | undefined
     if (containerXml == undefined) {
-        container = defaultContainer
-    } else {
-        container = getValue(readContainer(containerXml), diags)
-        if (container == undefined) {
-            diags.push("Failed to process container.xml")
-            container = defaultContainer
-        }
-    }
-    if (!container) {
-        diags.push('Unexpected error: container is undefined')
+        diags.push("No valid container.xml")
         return { diags }
     }
-    let contentPath = container.rootFiles[0].path
-    if (!contentPath) {
-        diags.push('Unexpected error: contentPath is undefined')
-        return {
-            diags,
-        }
+    let container = getValue(processContainerXml(containerXml), diags)
+    if (container == undefined) {
+        diags.push("Failed to process container.xml")
+        return { diags }
     }
     return {
         value: {
@@ -51,7 +30,7 @@ export async function parseEpub(fileProvider: FileProvider): AsyncResult<Epub> {
     }
 }
 
-async function loadXml(fileProvider: FileProvider, path: string): AsyncResult<Xml> {
+async function loadXml(fileProvider: FileProvider, path: string): AsyncResult<XmlNode[]> {
     let diags: Diagnostic[] = []
     let xmlFile = getValue(await fileProvider.read(path), diags)
     if (xmlFile == undefined) {
