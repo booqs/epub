@@ -1,6 +1,6 @@
-import { AsyncResult } from "./core"
+import { Result } from "./core"
 
-export async function checkMimetype(mimetype: string): AsyncResult<boolean> {
+export function checkMimetype(mimetype: string): Result<boolean> {
     if (mimetype != "application/epub+zip") {
         return {
             value: false,

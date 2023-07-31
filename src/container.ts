@@ -1,16 +1,10 @@
-import { AsyncResult, Container, RootFile } from "./core"
+import { Result, Container, RootFile, Diagnostic } from "./core"
 import { isEmptyObject } from "./utils"
-import { Xml, parseXml, toArray } from "./xml"
+import { Xml, toArray } from "./xml"
 
-export async function readContainer(containerContent: string): AsyncResult<Container> {
-    let { value, diags } = parseXml(containerContent)
-    if (value == undefined) {
-        diags.push("Failed to parse container.xml")
-        return {
-            diags,
-        }
-    }
-    let { container, ...restRoot } = value
+export function readContainer(containerXml: Xml): Result<Container> {
+    let diags: Diagnostic[] = []
+    let { container, ...restRoot } = containerXml
     if (!isEmptyObject(restRoot)) {
         diags.push({
             message: "container.xml has unexpected children",
