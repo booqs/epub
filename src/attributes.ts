@@ -1,4 +1,4 @@
-import { Diagnostics, XmlAttributes, ContentDirection } from "./core"
+import { Diagnostics, XmlAttributes, ContentDirection, Language } from "./core"
 
 export function processVersion(version: string | undefined, diags: Diagnostics): string {
     if (version === undefined) {
@@ -20,7 +20,7 @@ export function processPrefix(prefix: string | undefined, diags: Diagnostics) {
     return prefix
 }
 
-export function processLang(lang: string | undefined, diags: Diagnostics) {
+export function processLang(lang: string | undefined, diags: Diagnostics): Language | undefined {
     return lang
 }
 

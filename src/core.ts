@@ -75,6 +75,10 @@ export type DublinCoreElement = {
 }
 export type ContentDirection = 'auto' | 'rtl' | 'ltr'
 export type Language = string
+export type MetadataLanguage = {
+    value: string,
+    id?: string,
+}
 export type XmlAttributes = {
     [key: string]: string,
 }
