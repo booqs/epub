@@ -34,19 +34,47 @@ export type MediaType = string
 export type PackageDocument = {
     // Full path to map to the root file.
     fullPath: string,
-    uniqueIdentifier: string,
+    // This is resolved unique identifier for the package document.
+    // It is required by spec, but not enfoced by this library.
+    uid?: string,
+    // Thid is identifier of the metadata dc:identifier element that should be used as uid.
+    // It is required by spec, but not enfoced by this library.
+    uniqueIdentifier?: string,
+    metadata: PackageMetadata,
     // Version is required by the spec, but this library doesn't enforce it.
     version?: string,
-    dir?: Dir,
+    dir?: ContentDirection,
     id?: string,
     // The prefix attribute defines prefix mappings for use in property values.
     // Spec elaborate on how prefix mappings are defined, but this library doesn't support processing them.
     prefix?: string,
     // This is xml:lang
-    lang?: string,
+    lang?: Language,
     otherAttributes?: XmlAttributes,
 }
-export type Dir = 'auto' | 'rtl' | 'ltr'
+export type PackageMetadata = {
+    titles: MetadataTitle[],
+    identifiers: MetadataIdentifier[],
+}
+export type MetadataTitle = {
+    value: string,
+    lang?: Language,
+    dir?: ContentDirection,
+    id?: string,
+}
+export type MetadataIdentifier = {
+    value: string,
+    id?: string,
+}
+export type DublinCoreElement = {
+    value: string,
+    name: string,
+    id?: string,
+    dir?: ContentDirection,
+    lang?: Language,
+}
+export type ContentDirection = 'auto' | 'rtl' | 'ltr'
+export type Language = string
 export type XmlAttributes = {
     [key: string]: string,
 }

@@ -57,19 +57,25 @@ function preprocessXml(fast: FastXmlNode, diags: Diagnostic[]): XmlNode {
     }
     for (let [key, value] of Object.entries(fast)) {
         if (key == Attributes) {
-            result.attrs = value as XmlAttributes
+            result.attrs = {
+                ...result.attrs,
+                ...value as XmlAttributes,
+            }
         } else if (result.name == '') {
             result.name = key
-            if (key === '#text') {
-                // TODO: better support for string values?
-                // Hacky
-                result.children = []
-                result.attrs = {
-                    '#text': value as any as string,
+            let fastChildren = value as FastXmlNode[]
+            let children: XmlNode[] | undefined = fastChildren.length > 0 ? [] : undefined
+            for (let child of fastChildren) {
+                if (child['#text'] !== undefined) {
+                    result.attrs = {
+                        ...result.attrs,
+                        '#text': child['#text'] as any as string,
+                    }
+                } else {
+                    children?.push(preprocessXml(child, diags))
                 }
-            } else {
-                result.children = (value as FastXmlNode[]).map(v => preprocessXml(v, diags))
             }
+            result.children = children
         } else {
             diags.push({
                 message: `Unexpected xml object, too many keys`,
