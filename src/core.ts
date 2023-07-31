@@ -21,7 +21,9 @@ export type Epub = {
     manifest?: Xml,
 }
 export type Container = {
+    // Each rootfile element identifies the location of one package document in the EPUB container.
     rootFiles: RootFile[],
+    // NOTE: Link elements are not supported by this library!
 }
 export type RootFile = {
     fullPath: string,

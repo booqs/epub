@@ -10,7 +10,7 @@ export async function parseEpub(fileProvider: FileProvider): AsyncResult<Epub> {
     if (mimetype == undefined) {
         diags.push("mimetype file is missing")
     } else {
-        getValue(await checkMimetype(mimetype), diags)
+        getValue(checkMimetype(mimetype), diags)
     }
     let containerXml = getValue(await loadXml(fileProvider, "META-INF/container.xml"), diags)
     if (containerXml == undefined) {

@@ -29,7 +29,7 @@ export function processContainerXml(containerXml: Xml): Result<Container> {
             })
         }
         for (let child of node.children ?? []) {
-            rootFiles.push(...processRootfiles(child, diags))
+            rootFiles.push(...processContainerChild(child, diags))
         }
     }
     return {
@@ -40,19 +40,23 @@ export function processContainerXml(containerXml: Xml): Result<Container> {
     }
 }
 
-function processRootfiles(rootfiles: XmlNode, diags: Diagnostic[]): RootFile[] {
-    if (rootfiles.name !== 'rootfiles') {
-        diags.push(`Expected rootfiles element, got: ${rootfiles.name}`)
+function processContainerChild(containerChild: XmlNode, diags: Diagnostic[]): RootFile[] {
+    if (containerChild.name === 'links') {
+        diags.push('links element is not supported')
         return []
     }
-    if (!isEmptyObject(rootfiles.attrs)) {
+    if (containerChild.name !== 'rootfiles') {
+        diags.push(`Unexpected container child: ${containerChild.name}`)
+        return []
+    }
+    if (!isEmptyObject(containerChild.attrs)) {
         diags.push({
             message: `rootfiles element has unexpected attributes`,
-            data: rootfiles.attrs,
+            data: containerChild.attrs,
         })
     }
     let result: RootFile[] = []
-    for (let node of rootfiles.children ?? []) {
+    for (let node of containerChild.children ?? []) {
         if (node.name !== 'rootfile') {
             diags.push(`Expected rootfile element, got: ${node.name}`)
             continue
