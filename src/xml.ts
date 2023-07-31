@@ -1,14 +1,5 @@
 import { XMLParser } from "fast-xml-parser"
-import { Diagnostic, Result } from "./core"
-
-export type XmlAttributes = {
-    [key: string]: string,
-}
-export type XmlNode = {
-    name: string,
-    attrs?: XmlAttributes,
-    children?: XmlNode[],
-}
+import { Diagnostic, Result, XmlAttributes, XmlNode } from "./core"
 
 const Attributes = ':@'
 type FastXmlNode<Name extends string = string> = {

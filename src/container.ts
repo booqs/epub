@@ -1,8 +1,7 @@
-import { Result, Container, Diagnostic, RootFile } from "./core"
+import { Result, Container, Diagnostic, RootFile, Xml, XmlNode } from "./core"
 import { isEmptyObject } from "./utils"
-import { XmlNode } from "./xml"
 
-export function processContainerXml(containerXml: XmlNode[]): Result<Container> {
+export function processContainerXml(containerXml: Xml): Result<Container> {
     let diags: Diagnostic[] = []
     if (containerXml.length != 1) {
         diags.push("container.xml should have exactly one rootfile element")
