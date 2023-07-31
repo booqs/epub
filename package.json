@@ -1,0 +1,29 @@
+{
+  "name": "booqs-epub",
+  "version": "0.0.4",
+  "description": "Simple epub parser",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "build": "tsc",
+    "prepublishOnly": "npm run lint && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/booqs/epub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/booqs/epub/issues"
+  },
+  "homepage": "https://github.com/booqs/epub#readme",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "eslint": "^8.46.0",
+    "typescript": "^5.1.6"
+  }
+}
