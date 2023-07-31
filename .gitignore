@@ -31,3 +31,9 @@ typings/
 
 # Build output
 dist/
+
+# Misc
+.DS_Store
+
+# Epub examples
+epubs/**/*
