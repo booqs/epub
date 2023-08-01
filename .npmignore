@@ -6,3 +6,4 @@ src
 !*.d.ts
 .tsbuildinfo
 .eslintrc.js
+epubs/**/*
