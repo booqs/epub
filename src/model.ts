@@ -56,10 +56,6 @@ export type PackageMetadata = {
     identifier: MetadataIdentifier[],
     language: MetadataLanguage[],
 } & DublinCore
-export type DublinCoreKeys = 'contributor' | 'coverage' | 'creator' | 'date' | 'description' | 'format' | 'publisher' | 'relation' | 'right' | 'source' | 'subject' | 'type'
-export type DublinCore = {
-    [key in DublinCoreKeys]?: DublinCoreElement[];
-}
 export type MetadataTitle = {
     value: string,
     lang?: Language,
@@ -76,11 +72,37 @@ export type MetadataLanguage = {
     id?: string,
     extra?: XmlAttributes,
 }
+export type DublinCoreKeys = 'contributor' | 'coverage' | 'creator' | 'date' | 'description' | 'format' | 'publisher' | 'relation' | 'right' | 'source' | 'subject' | 'type'
+export type DublinCore = {
+    [key in DublinCoreKeys]?: DublinCoreElement[];
+}
 export type DublinCoreElement = {
     value: string,
     id?: string,
     dir?: ContentDirection,
     lang?: Language,
+    extra?: XmlAttributes,
+}
+export type Meta = Meta3 | Meta2
+export type Meta3 = {
+    property: MetaProperty,
+    dir?: ContentDirection,
+    id?: string,
+    refines?: string,
+    scheme?: string,
+    lang?: Language,
+    extra?: XmlAttributes,
+    value?: string,
+}
+export type MetaProperty = | 'alternate-script' | 'authority'
+    | 'belongs-to-collection' | 'collection-type' | 'display-seq' | 'file-as'
+    | 'group-position' | 'identifier-type'
+    | 'role' | 'source-of' | 'term' | 'title-type'
+    | `${string}:${string}`
+    | `-unknown-${string}`
+export type Meta2 = {
+    name: string,
+    content: string,
     extra?: XmlAttributes,
 }
 

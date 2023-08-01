@@ -27,7 +27,7 @@ function printDiagnostics(diagnostics: Diagnostic[]) {
 
 async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
     const fileProvider = createZipFileProvider(fs.promises.readFile(epubFilePath))
-    let { diags } = await parseEpub(fileProvider)
+    let { diags, value } = await parseEpub(fileProvider)
     return diags
 }
 
