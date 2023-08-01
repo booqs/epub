@@ -1,12 +1,13 @@
 import {
     expectAttributes, processDir, processLang, processPrefix, processUniqueIdentifier, processVersion,
 } from "./attributes"
-import { Manifest, PackageDocument, PackageMetadata, Spine, Xml } from "./model"
+import { Collection, Manifest, PackageDocument, PackageMetadata, Spine, Xml } from "./model"
 import { Diagnostics } from "./diagnostic"
 import { processPackageMetadata } from "./metadata"
-import { optionalExtra } from "./utils"
+import { optionalExtra, pushIfDefined } from "./utils"
 import { processManifest } from "./manifest"
 import { processSpine } from "./spine"
+import { processCollection } from "./collection"
 
 export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<PackageDocument, 'fullPath'> | undefined {
     let [root, ...restNodes] = packageXml
@@ -29,6 +30,7 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
     let metadata: PackageMetadata | undefined
     let manifest: Manifest | undefined
     let spine: Spine | undefined
+    let collections: Collection[] = []
     for (let node of root.children ?? []) {
         switch (node.name) {
             case 'metadata':
@@ -60,6 +62,16 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
                     continue
                 }
                 spine = processSpine(node, diags.scope('spine'))
+                break
+            case 'collection':
+                pushIfDefined(collections, processCollection(node, diags.scope('collection')))
+                break
+            case 'guide':
+            case 'bindings':
+                diags.push(`element ${node.name} is not supported`)
+                break
+            default:
+                diags.push(`unexpected element ${node.name}`)
                 break
         }
     }

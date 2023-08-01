@@ -1,9 +1,10 @@
 import { expectAttributes, processDir, processLang } from "./attributes"
 import {
-    PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, MetadataLanguage, DublinCoreElement, DublinCore, Meta, MetaProperty, MetadataLink,
+    PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, MetadataLanguage, DublinCoreElement, DublinCore, Meta, MetaProperty, Link,
 } from "./model"
 import { Diagnostics } from "./diagnostic"
-import { optionalExtra } from "./utils"
+import { optionalExtra, pushIfDefined } from "./utils"
+import { processLink } from "./link"
 
 export function processPackageMetadata(node: XmlNode, diags: Diagnostics): PackageMetadata | undefined {
     expectAttributes(node.attrs ?? {}, [], diags.scope(node.name))
@@ -12,7 +13,7 @@ export function processPackageMetadata(node: XmlNode, diags: Diagnostics): Packa
     let language: MetadataLanguage[] = []
     let dublinCore: DublinCore = {}
     let meta: Meta[] = []
-    let link: MetadataLink[] = []
+    let link: Link[] = []
     function addDublinCore(node: XmlNode) {
         let element = processDublinCoreElement(node, diags)
         if (element) {
@@ -209,42 +210,5 @@ function processMetaProperty(property: string, diags: Diagnostics): MetaProperty
                 })
                 return `-unknown-${property}`
             }
-    }
-}
-
-function processLink(node: XmlNode, diags: Diagnostics): MetadataLink | undefined {
-    let {
-        href, hreflang, id, 'media-type': mediaType, rel, refines, properties,
-        '#text': text,
-        ...rest
-    } = node.attrs ?? {}
-    expectAttributes(
-        rest,
-        [],
-        diags.scope(node.name),
-    )
-    if (text) {
-        diags.push({
-            message: `link element cannot have text`,
-            severity: 'warning',
-            data: node.attrs,
-        })
-    }
-    if (!href) {
-        diags.push({
-            message: `link element is missing href`,
-            data: node.attrs,
-        })
-        return undefined
-    }
-    return {
-        href, hreflang, id, mediaType, rel, refines, properties,
-        ...optionalExtra(rest),
-    }
-}
-
-function pushIfDefined<T>(array: T[], item: T | undefined) {
-    if (item !== undefined) {
-        array.push(item)
     }
 }

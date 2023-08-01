@@ -61,7 +61,7 @@ export type PackageMetadata = {
     identifier: MetadataIdentifier[],
     language: MetadataLanguage[],
     meta?: Meta[],
-    link?: MetadataLink[],
+    link?: Link[],
 } & DublinCore
 export type MetadataTitle = {
     value: string,
@@ -112,7 +112,7 @@ export type Meta2 = {
     content: string,
     extra?: XmlAttributes,
 }
-export type MetadataLink = {
+export type Link = {
     href: string,
     hreflang?: string,
     id?: string,
@@ -146,11 +146,19 @@ export type SpineItemRef = {
     linear?: boolean,
     properties?: Properties,
 }
+export type Collection = {
+    role: Role,
+    id?: string,
+    dir?: ContentDirection,
+    lang?: Language,
+    links: Link[],
+}
 
 export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
 export type MediaType = string
 export type Language = string
 export type Properties = string
+export type Role = string
 
 export type XmlAttributes = {
     [key: string]: string,

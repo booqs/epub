@@ -8,3 +8,9 @@ export function optionalExtra(obj: XmlAttributes | undefined): {
         ? { extra: obj }
         : {}
 }
+
+export function pushIfDefined<T>(array: T[], item: T | undefined) {
+    if (item !== undefined) {
+        array.push(item)
+    }
+}
