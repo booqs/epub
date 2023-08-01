@@ -7,7 +7,7 @@ export type Epub = {
     // The REQUIRED container.xml file in the META-INF directory identifies the package documents available in the OCF abstract container.
     // This library processe the container.xml file and extracts relevant information from it.
     container: Container,
-    packages: PackageDocument[],
+    packages: Package[],
     // The OPTIONAL encryption.xml file in the META-INF directory holds all encryption information on the contents of the container. If an EPUB creator encrypts any resources within the container, they MUST include an encryption.xml file to provide information about the encryption used.
     // Spec provide further details on the encryption.xml file, but this library doesn't support processing it.
     encryption?: Xml,
@@ -33,9 +33,13 @@ export type RootFile = {
     fullPath: string,
     mediaType: MediaType,
 }
-export type PackageDocument = {
+export type Package = {
     // Full path to map to the root file.
     fullPath: string,
+    document: PackageDocument,
+    ncx?: NCX,
+}
+export type PackageDocument = {
     // This is resolved unique identifier for the package document.
     // It is required by spec, but not enfoced by this library.
     uid?: string,

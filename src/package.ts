@@ -10,7 +10,7 @@ import { processSpine } from "./spine"
 import { processCollection } from "./collection"
 import { processGuide } from "./guide"
 
-export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<PackageDocument, 'fullPath'> | undefined {
+export function processPackageXml(packageXml: Xml, diags: Diagnostics): PackageDocument | undefined {
     let [root, ...restNodes] = packageXml
     if (restNodes.length > 0) {
         diags.push(`package.xml should have exactly one rootfile element, got ${packageXml.length}`)

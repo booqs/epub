@@ -9,7 +9,7 @@ import { pushIfDefined } from "./utils"
 
 export function processNcx(node: XmlNode, diags: Diagnostics): NCX | undefined {
     let {
-        version, lang, xmlns,
+        version, 'xml:lang': lang, xmlns,
         ...rest
     } = node.attrs ?? {}
     expectAttributes(rest, [], diags)
