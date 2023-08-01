@@ -1,7 +1,8 @@
 import { expectAttributes, processDir, processLang } from "./attributes"
 import {
-    PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, Diagnostics, MetadataLanguage, DublinCoreElement, DublinCore,
-} from "./core"
+    PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, MetadataLanguage, DublinCoreElement, DublinCore,
+} from "./model"
+import { Diagnostics } from "./diagnostic"
 import { optionalExtra } from "./utils"
 
 export function processPackageMetadata(node: XmlNode, diags: Diagnostics): PackageMetadata | undefined {

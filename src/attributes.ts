@@ -1,4 +1,5 @@
-import { Diagnostics, XmlAttributes, ContentDirection, Language } from "./core"
+import { XmlAttributes, ContentDirection, Language } from "./model"
+import { Diagnostics } from "./diagnostic"
 
 export function processVersion(version: string | undefined, diags: Diagnostics): string {
     if (version === undefined) {

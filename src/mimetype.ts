@@ -1,4 +1,4 @@
-import { Diagnostics } from "./core"
+import { Diagnostics } from "./model"
 
 export function checkMimetype(mimetype: string, diags: Diagnostics): boolean {
     if (mimetype != "application/epub+zip") {

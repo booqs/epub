@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser"
-import { Diagnostics, XmlAttributes, XmlNode } from "./core"
+import { XmlAttributes, XmlNode } from "./model"
+import { Diagnostics } from "./diagnostic"
 
 const Attributes = ':@'
 type FastXmlNode<Name extends string = string> = {

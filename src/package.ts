@@ -1,7 +1,8 @@
 import {
     expectAttributes, processDir, processLang, processPrefix, processUniqueIdentifier, processVersion,
 } from "./attributes"
-import { Diagnostics, PackageDocument, PackageMetadata, Xml, XmlAttributes } from "./core"
+import { PackageDocument, PackageMetadata, Xml } from "./model"
+import { Diagnostics } from "./diagnostic"
 import { processPackageMetadata } from "./metadata"
 import { optionalExtra } from "./utils"
 

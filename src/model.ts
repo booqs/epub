@@ -30,7 +30,6 @@ export type RootFile = {
     fullPath: string,
     mediaType: MediaType,
 }
-export type MediaType = string
 export type PackageDocument = {
     // Full path to map to the root file.
     fullPath: string,
@@ -72,6 +71,11 @@ export type MetadataIdentifier = {
     id?: string,
     extra?: XmlAttributes,
 }
+export type MetadataLanguage = {
+    value: string,
+    id?: string,
+    extra?: XmlAttributes,
+}
 export type DublinCoreElement = {
     value: string,
     id?: string,
@@ -79,13 +83,11 @@ export type DublinCoreElement = {
     lang?: Language,
     extra?: XmlAttributes,
 }
+
 export type ContentDirection = 'auto' | 'rtl' | 'ltr'
+export type MediaType = string
 export type Language = string
-export type MetadataLanguage = {
-    value: string,
-    id?: string,
-    extra?: XmlAttributes,
-}
+
 export type XmlAttributes = {
     [key: string]: string,
 }
@@ -95,24 +97,3 @@ export type XmlNode = {
     children?: XmlNode[],
 }
 export type Xml = XmlNode[]
-
-export type FileProvider = {
-    read: (path: string) => Promise<{
-        value?: string,
-        diags: Diagnostic[],
-    }>,
-}
-
-export type Diagnostic = {
-    message: string,
-    data?: any,
-    severity?: DiagnosticSeverity,
-    scope?: DiagnosticScope[],
-}
-export type DiagnosticSeverity = 'error' | 'warning' | 'critical'
-export type DiagnosticScope = string | object
-export type Diagnostics = {
-    push(...diagnostic: Array<Diagnostic | string>): void,
-    all(): Diagnostic[],
-    scope(scope: DiagnosticScope): Diagnostics,
-}

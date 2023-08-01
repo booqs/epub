@@ -2,8 +2,9 @@ import fs from 'fs'
 import path from 'path'
 import JSZip from 'jszip'
 import { parseEpub } from './index'
-import { Diagnostic, FileProvider } from './core'
 import util from 'util'
+import { Diagnostic } from './diagnostic'
+import { FileProvider } from './epub'
 
 checkAllEpubs()
 

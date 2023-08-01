@@ -1,9 +1,16 @@
 import { processContainerXml } from "./container"
-import { Diagnostic, Diagnostics, Epub, FileProvider, PackageDocument, RootFile, Xml } from "./core"
+import { Epub, PackageDocument, RootFile, Xml } from "./model"
+import { Diagnostic, Diagnostics, diagnostics } from "./diagnostic"
 import { checkMimetype } from "./mimetype"
 import { processPackageXml } from "./package"
-import { diagnostics } from "./utils"
 import { parseXml } from "./xml"
+
+export type FileProvider = {
+    read: (path: string) => Promise<{
+        value?: string,
+        diags: Diagnostic[],
+    }>,
+}
 
 export async function parseEpub(fileProvider: FileProvider): Promise<{
     value?: Epub,

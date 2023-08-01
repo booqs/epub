@@ -1,5 +1,6 @@
 import { expectAttributes } from "./attributes"
-import { Container, Diagnostics, RootFile, Xml, XmlNode } from "./core"
+import { Container, RootFile, Xml, XmlNode } from "./model"
+import { Diagnostics } from "./diagnostic"
 
 export function processContainerXml(containerXml: Xml, diags: Diagnostics): Container | undefined {
     if (containerXml.length != 1) {
