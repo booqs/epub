@@ -53,6 +53,10 @@ function processType(type: string, diags: Diagnostics): ReferenceType {
         case 'notes': case 'preface': case 'text':
             return type
         default:
+            diags.push({
+                message: `unknown reference type: ${type}`,
+                severity: 'warning',
+            })
             return `-unknown-${type}`
     }
 }

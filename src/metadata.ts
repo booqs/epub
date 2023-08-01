@@ -5,6 +5,7 @@ import {
 import { Diagnostics } from "./diagnostic"
 import { optionalExtra, pushIfDefined } from "./utils"
 import { processLink } from "./link"
+import { processMeta } from "./meta"
 
 export function processPackageMetadata(node: XmlNode, diags: Diagnostics): PackageMetadata | undefined {
     expectAttributes(node.attrs ?? {}, [], diags.scope(node.name))
@@ -142,73 +143,5 @@ function processDublinCoreElement(node: XmlNode, diags: Diagnostics): DublinCore
         dir: processDir(dir, diags),
         value: text,
         ...optionalExtra(rest),
-    }
-}
-
-function processMeta(node: XmlNode, diags: Diagnostics): Meta | undefined {
-    let {
-        dir, id, property, refines, scheme,
-        'xml:lang': lang,
-        '#text': text,
-        name, content,
-        ...rest
-    } = node.attrs ?? {}
-    expectAttributes(
-        rest,
-        [],
-        diags.scope(node.name),
-    )
-    if (!property) {
-        if (!name || !content) {
-            diags.push({
-                message: `meta2 element is missing name or content`,
-                data: node.attrs,
-            })
-            return undefined
-        }
-        if (!content) {
-            diags.push(`meta2 element is missing content`)
-            return undefined
-        }
-        if (refines || scheme || text || lang || dir || id) {
-            diags.push({
-                message: `meta2 element cannot have meta3 attributes`,
-                data: node.attrs,
-            })
-        }
-        return {
-            name, content,
-            ...optionalExtra(rest),
-        }
-    } else {
-        return {
-            id,
-            lang: processLang(lang, diags),
-            dir: processDir(dir, diags),
-            property: processMetaProperty(property, diags),
-            refines,
-            scheme,
-            value: text,
-            ...optionalExtra(rest),
-        }
-    }
-}
-
-function processMetaProperty(property: string, diags: Diagnostics): MetaProperty {
-    switch (property) {
-        case 'alternate-script': case 'authority':
-        case 'belongs-to-collection': case 'collection-type': case 'display-seq': case 'file-as': case 'group-position':
-        case 'identifier-type': case 'role': case 'source-of': case 'term': case 'title-type':
-            return property
-        default:
-            if (property.includes(':')) {
-                return property as `${string}:${string}`
-            } else {
-                diags.push({
-                    message: `unknown meta property ${property}`,
-                    severity: 'warning',
-                })
-                return `-unknown-${property}`
-            }
     }
 }

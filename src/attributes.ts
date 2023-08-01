@@ -64,3 +64,15 @@ export function expectAttributes(attributes: XmlAttributes, expected: string[], 
         }
     }
 }
+
+export function processNumberAttr(value: string | undefined, diags: Diagnostics): number | undefined {
+    if (!value) {
+        return undefined
+    }
+    let result = Number(value)
+    if (isNaN(result)) {
+        diags.push(`expected number, got ${value}`)
+        return undefined
+    }
+    return result
+}

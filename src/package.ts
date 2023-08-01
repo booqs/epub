@@ -103,6 +103,7 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
         diags.push(`spine is missing`)
         return undefined
     }
+
     return {
         metadata,
         manifest,

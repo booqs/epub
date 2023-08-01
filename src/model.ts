@@ -169,6 +169,51 @@ export type ReferenceType = | 'cover' | 'title-page' | 'toc' | 'index'
     | 'loi' | 'lot' | 'notes' | 'preface' | 'text'
     | `-unknown-${string}`
 
+export type NCX = {
+    version?: string,
+    lang?: Language,
+    head?: NCXHead,
+    title?: string,
+    author?: string,
+    navMap: NavMap,
+    pageList?: PageList,
+    navList?: NavList,
+}
+export type NCXHead = {
+    meta: Meta2[],
+}
+export type NavMap = {
+    navPoints: NavPoint[],
+}
+export type NavPoint = {
+    className?: string,
+    id?: string,
+    label?: string,
+    playOrder?: number,
+    content?: NavContent,
+    navPoints?: NavPoint[],
+}
+export type NavContent = string
+export type PageList = {
+    pageTargets: PageTarget[],
+}
+export type PageTarget = {
+    label: string,
+    content: NavContent,
+    id?: string,
+    type?: string,
+    value?: number,
+}
+export type NavList = {
+    label?: string,
+    navTargets: NavTarget[],
+}
+export type NavTarget = {
+    content: NavContent,
+    label: string,
+    id?: string,
+}
+
 export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
 export type MediaType = string
 export type Language = string
