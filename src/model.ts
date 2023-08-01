@@ -55,6 +55,8 @@ export type PackageMetadata = {
     title: MetadataTitle[],
     identifier: MetadataIdentifier[],
     language: MetadataLanguage[],
+    meta?: Meta[],
+    link?: MetadataLink[],
 } & DublinCore
 export type MetadataTitle = {
     value: string,
@@ -103,6 +105,16 @@ export type MetaProperty = | 'alternate-script' | 'authority'
 export type Meta2 = {
     name: string,
     content: string,
+    extra?: XmlAttributes,
+}
+export type MetadataLink = {
+    href: string,
+    hreflang?: string,
+    id?: string,
+    mediaType?: MediaType,
+    properties?: string,
+    refines?: string,
+    rel?: string,
     extra?: XmlAttributes,
 }
 

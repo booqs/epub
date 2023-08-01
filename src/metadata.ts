@@ -1,6 +1,6 @@
 import { expectAttributes, processDir, processLang } from "./attributes"
 import {
-    PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, MetadataLanguage, DublinCoreElement, DublinCore, Meta, MetaProperty,
+    PackageMetadata, MetadataTitle, XmlNode, MetadataIdentifier, MetadataLanguage, DublinCoreElement, DublinCore, Meta, MetaProperty, MetadataLink,
 } from "./model"
 import { Diagnostics } from "./diagnostic"
 import { optionalExtra } from "./utils"
@@ -12,6 +12,7 @@ export function processPackageMetadata(node: XmlNode, diags: Diagnostics): Packa
     let language: MetadataLanguage[] = []
     let dublinCore: DublinCore = {}
     let meta: Meta[] = []
+    let link: MetadataLink[] = []
     function addDublinCore(node: XmlNode) {
         let element = processDublinCoreElement(node, diags)
         if (element) {
@@ -35,22 +36,17 @@ export function processPackageMetadata(node: XmlNode, diags: Diagnostics): Packa
             case 'dc:language':
                 pushIfDefined(language, processLanguage(child, diags))
                 break
-            case 'dc:contributor':
-            case 'dc:coverage':
-            case 'dc:creator':
-            case 'dc:date':
-            case 'dc:description':
-            case 'dc:format':
-            case 'dc:publisher':
-            case 'dc:relation':
-            case 'dc:rights':
-            case 'dc:source':
-            case 'dc:subject':
-            case 'dc:type':
+            case 'dc:contributor': case 'dc:coverage': case 'dc:creator':
+            case 'dc:date': case 'dc:description': case 'dc:format':
+            case 'dc:publisher': case 'dc:relation': case 'dc:rights':
+            case 'dc:source': case 'dc:subject': case 'dc:type':
                 addDublinCore(child)
                 break
             case 'meta':
                 pushIfDefined(meta, processMeta(child, diags))
+                break
+            case 'link':
+                pushIfDefined(link, processLink(child, diags))
                 break
             default:
                 diags.push(`unexpected element ${child.name}`)
@@ -63,6 +59,7 @@ export function processPackageMetadata(node: XmlNode, diags: Diagnostics): Packa
         language,
         ...dublinCore,
         ...(meta.length > 0 ? { meta } : {}),
+        ...(link.length > 0 ? { link } : {}),
     }
 }
 
@@ -212,6 +209,37 @@ function processMetaProperty(property: string, diags: Diagnostics): MetaProperty
                 })
                 return `-unknown-${property}`
             }
+    }
+}
+
+function processLink(node: XmlNode, diags: Diagnostics): MetadataLink | undefined {
+    let {
+        href, hreflang, id, 'media-type': mediaType, rel, refines, properties,
+        '#text': text,
+        ...rest
+    } = node.attrs ?? {}
+    expectAttributes(
+        rest,
+        [],
+        diags.scope(node.name),
+    )
+    if (text) {
+        diags.push({
+            message: `link element cannot have text`,
+            severity: 'warning',
+            data: node.attrs,
+        })
+    }
+    if (!href) {
+        diags.push({
+            message: `link element is missing href`,
+            data: node.attrs,
+        })
+        return undefined
+    }
+    return {
+        href, hreflang, id, mediaType, rel, refines, properties,
+        ...optionalExtra(rest),
     }
 }
 
