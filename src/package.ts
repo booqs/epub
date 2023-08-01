@@ -1,13 +1,14 @@
 import {
     expectAttributes, processDir, processLang, processPrefix, processUniqueIdentifier, processVersion,
 } from "./attributes"
-import { Collection, Manifest, PackageDocument, PackageMetadata, Spine, Xml } from "./model"
+import { Collection, Guide, Manifest, PackageDocument, PackageMetadata, Spine, Xml } from "./model"
 import { Diagnostics } from "./diagnostic"
 import { processPackageMetadata } from "./metadata"
 import { optionalExtra, pushIfDefined } from "./utils"
 import { processManifest } from "./manifest"
 import { processSpine } from "./spine"
 import { processCollection } from "./collection"
+import { processGuide } from "./guide"
 
 export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<PackageDocument, 'fullPath'> | undefined {
     let [root, ...restNodes] = packageXml
@@ -31,6 +32,7 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
     let manifest: Manifest | undefined
     let spine: Spine | undefined
     let collections: Collection[] = []
+    let guide: Guide | undefined
     for (let node of root.children ?? []) {
         switch (node.name) {
             case 'metadata':
@@ -67,6 +69,15 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
                 pushIfDefined(collections, processCollection(node, diags.scope('collection')))
                 break
             case 'guide':
+                if (guide !== undefined) {
+                    diags.push({
+                        message: `guide should be defined only once`,
+                        data: node,
+                    })
+                    continue
+                }
+                guide = processGuide(node, diags.scope('guide'))
+                break
             case 'bindings':
                 diags.push(`element ${node.name} is not supported`)
                 break
@@ -96,6 +107,8 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
         metadata,
         manifest,
         spine,
+        ...(collections.length > 0 ? { collections } : {}),
+        ...(guide !== undefined ? { guide } : {}),
         version: processVersion(version, diags),
         uid,
         uniqueIdentifier,

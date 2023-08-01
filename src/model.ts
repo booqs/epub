@@ -44,6 +44,8 @@ export type PackageDocument = {
     uniqueIdentifier?: string,
     metadata: PackageMetadata,
     manifest: Manifest,
+    collection?: Collection[],
+    guide?: Guide,
     spine: Spine,
     // Version is required by the spec, but this library doesn't enforce it.
     version?: string,
@@ -153,6 +155,19 @@ export type Collection = {
     lang?: Language,
     links: Link[],
 }
+export type Guide = {
+    references: Reference[],
+}
+export type Reference = {
+    href: string,
+    type: string,
+    title?: string,
+}
+export type ReferenceType = | 'cover' | 'title-page' | 'toc' | 'index'
+    | 'glossary' | 'acknowledgements' | 'bibliography' | 'colophon'
+    | 'copyright-page' | 'dedication' | 'epigraph' | 'foreword'
+    | 'loi' | 'lot' | 'notes' | 'preface' | 'text'
+    | `-unknown-${string}`
 
 export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
 export type MediaType = string
