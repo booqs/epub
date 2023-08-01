@@ -40,6 +40,7 @@ export type PackageDocument = {
     // It is required by spec, but not enfoced by this library.
     uniqueIdentifier?: string,
     metadata: PackageMetadata,
+    manifest: Manifest,
     // Version is required by the spec, but this library doesn't enforce it.
     version?: string,
     dir?: ContentDirection,
@@ -112,15 +113,28 @@ export type MetadataLink = {
     hreflang?: string,
     id?: string,
     mediaType?: MediaType,
-    properties?: string,
+    properties?: Properties,
     refines?: string,
     rel?: string,
     extra?: XmlAttributes,
+}
+export type Manifest = {
+    id?: string,
+    items: ManifestItem[],
+}
+export type ManifestItem = {
+    href: string,
+    id: string,
+    mediaType: MediaType,
+    fallback?: string,
+    mediaOverlay: string,
+    properties: Properties,
 }
 
 export type ContentDirection = 'auto' | 'rtl' | 'ltr'
 export type MediaType = string
 export type Language = string
+export type Properties = string
 
 export type XmlAttributes = {
     [key: string]: string,
