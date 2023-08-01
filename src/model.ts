@@ -1,4 +1,7 @@
 // Refere https://www.w3.org/TR/epub-33/ for the EPUB spec.
+
+import exp from "constants"
+
 // This implementation is partial, but should cover most use cases
 export type Epub = {
     // The REQUIRED container.xml file in the META-INF directory identifies the package documents available in the OCF abstract container.
@@ -41,6 +44,7 @@ export type PackageDocument = {
     uniqueIdentifier?: string,
     metadata: PackageMetadata,
     manifest: Manifest,
+    spine: Spine,
     // Version is required by the spec, but this library doesn't enforce it.
     version?: string,
     dir?: ContentDirection,
@@ -130,8 +134,20 @@ export type ManifestItem = {
     mediaOverlay: string,
     properties: Properties,
 }
+export type Spine = {
+    id?: string,
+    pageProgressionDirection?: ContentDirection,
+    toc?: string,
+    itemRefs: SpineItemRef[],
+}
+export type SpineItemRef = {
+    idref: string,
+    id?: string,
+    linear?: boolean,
+    properties?: Properties,
+}
 
-export type ContentDirection = 'auto' | 'rtl' | 'ltr'
+export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
 export type MediaType = string
 export type Language = string
 export type Properties = string

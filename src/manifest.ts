@@ -23,6 +23,7 @@ export function processManifest(node: XmlNode, diags: Diagnostics): Manifest | u
         diags.push(`manifest element is missing items`)
         return undefined
     }
+    // TODO: validate fallbacks are valid ids
     return {
         id,
         items,

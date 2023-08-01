@@ -28,13 +28,28 @@ export function processLang(lang: string | undefined, diags: Diagnostics): Langu
 export function processDir(dir: string | undefined, diags: Diagnostics): ContentDirection | undefined {
     switch (dir) {
         case 'auto':
+        case 'default':
         case 'ltr':
         case 'rtl':
             return dir
         case undefined:
             return undefined
         default:
-            diags.push(`dir should be ltr, rtl or auto, got: ${dir}`)
+            diags.push(`dir should be ltr, rtl, auto or default, got: ${dir}`)
+            return undefined
+    }
+}
+
+export function processLinear(linear: string | undefined, diags: Diagnostics): boolean | undefined {
+    switch (linear) {
+        case 'yes':
+            return true
+        case 'no':
+            return false
+        case undefined:
+            return undefined
+        default:
+            diags.push(`linear should be yes or no, got: ${linear}`)
             return undefined
     }
 }

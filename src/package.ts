@@ -1,11 +1,12 @@
 import {
     expectAttributes, processDir, processLang, processPrefix, processUniqueIdentifier, processVersion,
 } from "./attributes"
-import { Manifest, PackageDocument, PackageMetadata, Xml } from "./model"
+import { Manifest, PackageDocument, PackageMetadata, Spine, Xml } from "./model"
 import { Diagnostics } from "./diagnostic"
 import { processPackageMetadata } from "./metadata"
 import { optionalExtra } from "./utils"
 import { processManifest } from "./manifest"
+import { processSpine } from "./spine"
 
 export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<PackageDocument, 'fullPath'> | undefined {
     let [root, ...restNodes] = packageXml
@@ -27,6 +28,7 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
     )
     let metadata: PackageMetadata | undefined
     let manifest: Manifest | undefined
+    let spine: Spine | undefined
     for (let node of root.children ?? []) {
         switch (node.name) {
             case 'metadata':
@@ -48,6 +50,17 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
                     continue
                 }
                 manifest = processManifest(node, diags.scope('manifest'))
+                break
+            case 'spine':
+                if (spine !== undefined) {
+                    diags.push({
+                        message: `spine should be defined only once`,
+                        data: node,
+                    })
+                    continue
+                }
+                spine = processSpine(node, diags.scope('spine'))
+                break
         }
     }
     if (metadata === undefined) {
@@ -63,9 +76,14 @@ export function processPackageXml(packageXml: Xml, diags: Diagnostics): Omit<Pac
         diags.push(`manifest is missing`)
         return undefined
     }
+    if (spine === undefined) {
+        diags.push(`spine is missing`)
+        return undefined
+    }
     return {
         metadata,
         manifest,
+        spine,
         version: processVersion(version, diags),
         uid,
         uniqueIdentifier,
