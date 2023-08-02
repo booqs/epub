@@ -1,5 +1,5 @@
 import { Diagnostics } from "./diagnostic"
-import { loadXml, FileProvider, loadFile, getSiblingPath } from "./file"
+import { loadXml, FileProvider, getSiblingPath } from "./file"
 import { ContainerDocument, ManifestItem, Package, PackageDocument, PackageItem, Unvalidated } from "./model"
 import { parseHtml, parseXml } from "./xml"
 
@@ -38,8 +38,11 @@ async function loadPackage(fullPath: string, fileProvider: FileProvider, diags: 
         return undefined
     }
     let items = await loadManifestItems(document, {
-        read(relativePath, kind) {
-            return fileProvider.read(getSiblingPath(fullPath, relativePath), kind)
+        readText(relativePath) {
+            return fileProvider.readText(getSiblingPath(fullPath, relativePath))
+        },
+        readBuffer(relativePath) {
+            return fileProvider.readBuffer(getSiblingPath(fullPath, relativePath))
         },
     }, diags)
     return {
@@ -76,22 +79,22 @@ async function loadManifestItem(manifestItem: Unvalidated<ManifestItem>, filePro
         case 'application/xhtml+xml':
             return {
                 mediaType,
-                html: parseHtml(await loadFile(fileProvider, fullPath, 'text', diags), diags),
+                html: parseHtml(await fileProvider.readText(fullPath), diags),
             }
         case 'application/x-dtbncx+xml':
             return {
                 mediaType,
-                ncx: parseXml(await loadFile(fileProvider, fullPath, 'text', diags), diags),
+                ncx: parseXml(await fileProvider.readText(fullPath), diags),
             }
         case 'text/css':
             return {
                 mediaType,
-                css: await loadFile(fileProvider, fullPath, 'text', diags),
+                css: await fileProvider.readText(fullPath),
             }
         case 'image/jpeg': case 'image/png': case 'image/gif': case 'image/svg+xml':
             return {
                 mediaType,
-                image: await loadFile(fileProvider, fullPath, 'nodebuffer', diags),
+                image: await fileProvider.readBuffer(fullPath),
             }
         default:
             diags.push(`unexpected item: ${manifestItem['@media-type']}`)

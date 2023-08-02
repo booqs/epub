@@ -1,6 +1,6 @@
 import { FullEpub, Unvalidated } from "./model"
 import { Diagnostic, Diagnostics, diagnostics } from "./diagnostic"
-import { FileProvider, loadFile, loadOptionalXml, loadXml } from "./file"
+import { FileProvider, loadOptionalXml, loadXml } from "./file"
 import { loadPackages } from "./package"
 
 export async function parseEpub(fileProvider: FileProvider): Promise<{
@@ -8,7 +8,7 @@ export async function parseEpub(fileProvider: FileProvider): Promise<{
     diags: Diagnostic[],
 }> {
     const diags = diagnostics('parseEpub')
-    let mimetype = await loadFile(fileProvider, "mimetype", 'text', diags)
+    let mimetype = await fileProvider.readText("mimetype")
     validateMimetype(mimetype, diags)
     let container = await loadXml(fileProvider, "META-INF/container.xml", diags)
     if (container == undefined) {

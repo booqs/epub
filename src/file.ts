@@ -1,17 +1,10 @@
 import { Xml } from "./model"
-import { Diagnostic, Diagnostics, diagnostics } from "./diagnostic"
+import { Diagnostics } from "./diagnostic"
 import { parseXml } from "./xml"
 
-export type FileOutput = {
-    text: string,
-    nodebuffer: Buffer,
-}
-export type FileKind = keyof FileOutput
 export type FileProvider = {
-    read<K extends FileKind>(path: string, kind: K): Promise<{
-        value?: FileOutput[K],
-        diags: Diagnostic[],
-    }>,
+    readText(path: string): Promise<string | undefined>,
+    readBuffer(path: string): Promise<unknown | undefined>,
 }
 
 export function getSiblingPath(path: string, sibling: string): string {
@@ -21,7 +14,7 @@ export function getSiblingPath(path: string, sibling: string): string {
 }
 
 export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<Xml | undefined> {
-    let xmlFile = await loadFile(fileProvider, path, 'text', diags)
+    let xmlFile = await fileProvider.readText(path)
     if (xmlFile == undefined) {
         diags.push(`${path} is missing`)
         return undefined
@@ -36,7 +29,7 @@ export async function loadXml(fileProvider: FileProvider, path: string, diags: D
 }
 
 export async function loadOptionalXml(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<Xml | undefined> {
-    let xmlFile = await loadFile(fileProvider, path, 'text', diagnostics('ignore'))
+    let xmlFile = await fileProvider.readText(path)
     if (xmlFile == undefined) {
         return undefined
     }
@@ -47,13 +40,4 @@ export async function loadOptionalXml(fileProvider: FileProvider, path: string, 
     } else {
         return xml
     }
-}
-
-export async function loadFile<K extends FileKind>(fileProvider: FileProvider, path: string, kind: K, diags: Diagnostics): Promise<FileOutput[K] | undefined> {
-    let { value, diags: fileOpenDiags } = await fileProvider.read(path, kind)
-    diags.push(...fileOpenDiags)
-    if (value == undefined) {
-        diags.push(`${path} is missing`)
-    }
-    return value
 }

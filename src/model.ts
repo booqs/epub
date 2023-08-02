@@ -11,6 +11,8 @@ export type Language = string // TODO: define this better
 export type NumberString = `${number}`
 export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
 
+export type BufferType = unknown
+
 export type Xml = XmlContainer
 export type XmlNode = XmlContainer | XmlText
 export type XmlContainer = {
@@ -94,7 +96,7 @@ export type CssItem = {
 }
 export type ImageItem = {
     mediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/svg+xml',
-    image: Buffer,
+    image: BufferType,
 }
 
 export type PackageDocument = {

@@ -34,23 +34,31 @@ async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
 function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
     let zip: Promise<JSZip> | undefined
     return {
-        async read(path, kind) {
+        async readText(path) {
             if (!zip) {
                 zip = JSZip.loadAsync(fileContent)
             }
             const file = (await zip).file(path)
             if (!file) {
-                return {
-                    diags: [{
-                        message: `File ${path} not found in zip archive`,
-                        severity: 'critical',
-                    }]
-                }
+                return undefined
             }
 
-            const content = await file.async(kind)
+            const content = await file.async('text')
 
-            return { value: content, diags: [] }
+            return content
+        },
+        async readBuffer(path) {
+            if (!zip) {
+                zip = JSZip.loadAsync(fileContent)
+            }
+            const file = (await zip).file(path)
+            if (!file) {
+                return undefined
+            }
+
+            const content = await file.async('nodebuffer')
+
+            return content
         }
     }
 }
