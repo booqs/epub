@@ -165,21 +165,29 @@ export type ManifestItem = {
     '@properties'?: string,
     '@media-overlay'?: string,
 }
-export const knownManifestItemMediaTypes = [
+export const knownTextItems = [
     'application/xhtml+xml', 'application/x-dtbncx+xml',
     'text/css',
-    'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml',
 ] as const
-export type ManifestItemMediaType = typeof knownManifestItemMediaTypes[number]
+export const knownBufferItems = [
+    'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml',
+    'application/x-font-ttf',
+] as const
+export const knownManifestItemMediaTypes = [
+    ...knownTextItems, ...knownBufferItems,
+] as const
+export type TextItemMediaType = typeof knownTextItems[number]
+export type BufferItemMediaType = typeof knownBufferItems[number]
+export type ManifestItemMediaType = TextItemMediaType | BufferItemMediaType
 export type PackageItem = TextItem | BufferItem
 export type TextItem = {
     item: ManifestItem,
-    mediaType: 'application/xhtml+xml' | 'application/x-dtbncx+xml' | 'text/css',
+    mediaType: TextItemMediaType,
     content: string,
 }
 export type BufferItem = {
     item: ManifestItem,
-    mediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/svg+xml',
+    mediaType: BufferItemMediaType,
     content: BufferType,
 }
 
@@ -266,4 +274,30 @@ export type NcxContent = {
 }
 export type NcxText = {
     text: [XmlText],
+}
+
+export type NavDocument = {
+    html: [{
+        body: [NavElement],
+    }]
+}
+
+export type NavElement = {
+    nav: [{
+        '@epub:type': 'toc' | 'page-list' | 'landmark',
+        h1?: [XmlText],
+        h2?: [XmlText],
+        h3?: [XmlText],
+        h4?: [XmlText],
+        h5?: [XmlText],
+        h6?: [XmlText],
+        ol: [NavList],
+    }],
+}
+export type NavList = {
+    li: {
+        a?: [XmlText],
+        span?: [XmlText],
+        ol?: [NavList],
+    }[],
 }

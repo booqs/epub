@@ -90,6 +90,7 @@ async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: F
                 content,
             }
         }
+        case 'application/x-font-ttf':
         case 'image/jpeg': case 'image/png':
         case 'image/gif': case 'image/svg+xml': {
             let content = await fileProvider.readBuffer(fullPath)
