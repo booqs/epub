@@ -8,7 +8,7 @@ export async function parseEpub(fileProvider: FileProvider): Promise<{
     diags: Diagnostic[],
 }> {
     const diags = diagnostics('parseEpub')
-    let mimetype = await loadFile(fileProvider, "mimetype", diags)
+    let mimetype = await loadFile(fileProvider, "mimetype", 'text', diags)
     validateMimetype(mimetype, diags)
     let container = await loadXml(fileProvider, "META-INF/container.xml", diags)
     if (container == undefined) {

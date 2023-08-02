@@ -34,7 +34,7 @@ async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
 function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
     let zip: Promise<JSZip> | undefined
     return {
-        read: async (path: string) => {
+        async read(path, kind) {
             if (!zip) {
                 zip = JSZip.loadAsync(fileContent)
             }
@@ -48,7 +48,7 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
                 }
             }
 
-            const content = await file.async('text')
+            const content = await file.async(kind)
 
             return { value: content, diags: [] }
         }

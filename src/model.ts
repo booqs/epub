@@ -1,5 +1,11 @@
 // Refere https://www.w3.org/TR/epub-33/ for the EPUB spec.
 
+export type Unvalidated<T> = T extends string ? string
+    : T extends Array<infer U> ? Unvalidated<U>[]
+    : T extends object ? {
+        [P in keyof T]?: Unvalidated<T[P]>;
+    } : T;
+
 export type LinkMediaType = string
 export type Language = string // TODO: define this better
 export type NumberString = `${number}`
@@ -11,6 +17,19 @@ export type XmlContainer = {
     [key in string]?: XmlNode[];
 }
 export type XmlText = {
+    '#text': string,
+}
+// TODO: change to better type
+export type Html = {
+    html: HtmlNode,
+}
+export type HtmlNode = {
+    [key in string]?: HtmlNode[];
+} & {
+    attrs: {
+        [key in string]?: string;
+    };
+} | {
     '#text': string,
 }
 
@@ -52,21 +71,47 @@ export type ManifestDocument = Xml
 export type Package = {
     fullPath: string,
     document: PackageDocument,
+    items: PackageItem[],
+}
+export const knownManifestItemMediaTypes = [
+    'application/xhtml+xml', 'application/x-dtbncx+xml',
+    'text/css',
+    'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml',
+] as const
+export type ManifestItemMediaType = typeof knownManifestItemMediaTypes[number]
+export type PackageItem = HtmlItem | NcxItem | CssItem | ImageItem
+export type HtmlItem = {
+    mediaType: 'application/xhtml+xml',
+    html: Html,
+}
+export type NcxItem = {
+    mediaType: 'application/x-dtbncx+xml',
+    ncx: NcxDocument,
+}
+export type CssItem = {
+    mediaType: 'text/css',
+    css: string,
+}
+export type ImageItem = {
+    mediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/svg+xml',
+    image: Buffer,
 }
 
 export type PackageDocument = {
-    '@unique-identifier': string,
-    '@version': string,
-    '@prefix'?: string,
-    '@id'?: string,
-    '@dir'?: ContentDirection,
-    '@xml:lang'?: string,
-    metadata: [PackageMetadata],
-    manifest: [PackageManifest],
-    spine: [PackageSpine],
-    collection?: PackageCollection[],
-    guide?: [PackageGuide],
-    bindings?: XmlNode[],
+    package: [{
+        '@unique-identifier': string,
+        '@version': string,
+        '@prefix'?: string,
+        '@id'?: string,
+        '@dir'?: ContentDirection,
+        '@xml:lang'?: string,
+        metadata: [PackageMetadata],
+        manifest: [PackageManifest],
+        spine: [PackageSpine],
+        collection?: PackageCollection[],
+        guide?: [PackageGuide],
+        bindings?: XmlNode[],
+    }],
 }
 export type PackageMetadata = {
     meta?: Meta[],
@@ -129,17 +174,17 @@ export type Opf2Meta = {
     '@content': string,
 }
 
-export type ManifestItemMediaType = | 'application/xhtml+xml' | 'application/x-dtbncx+xml'
 export type PackageManifest = {
     '@id'?: string,
-    item: {
-        '@id': string,
-        '@href': string,
-        '@media-type': ManifestItemMediaType,
-        '@fallback'?: string,
-        '@properties'?: string,
-        '@media-overlay'?: string,
-    }[],
+    item: ManifestItem[],
+}
+export type ManifestItem = {
+    '@id': string,
+    '@href': string,
+    '@media-type': ManifestItemMediaType,
+    '@fallback'?: string,
+    '@properties'?: string,
+    '@media-overlay'?: string,
 }
 
 export type PackageSpine = {
@@ -226,9 +271,3 @@ export type NcxContent = {
 export type NcxText = {
     text: [XmlText],
 }
-
-export type Unvalidated<T> = T extends string ? string
-    : T extends Array<infer U> ? Unvalidated<U>[]
-    : T extends object ? {
-        [P in keyof T]?: Unvalidated<T[P]>;
-    } : T;

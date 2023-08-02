@@ -2,9 +2,14 @@ import { Xml } from "./model"
 import { Diagnostic, Diagnostics, diagnostics } from "./diagnostic"
 import { parseXml } from "./xml"
 
+export type FileOutput = {
+    text: string,
+    nodebuffer: Buffer,
+}
+export type FileKind = keyof FileOutput
 export type FileProvider = {
-    read: (path: string) => Promise<{
-        value?: string,
+    read<K extends FileKind>(path: string, kind: K): Promise<{
+        value?: FileOutput[K],
         diags: Diagnostic[],
     }>,
 }
@@ -16,7 +21,7 @@ export function getSiblingPath(path: string, sibling: string): string {
 }
 
 export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<Xml | undefined> {
-    let xmlFile = await loadFile(fileProvider, path, diags)
+    let xmlFile = await loadFile(fileProvider, path, 'text', diags)
     if (xmlFile == undefined) {
         diags.push(`${path} is missing`)
         return undefined
@@ -31,7 +36,7 @@ export async function loadXml(fileProvider: FileProvider, path: string, diags: D
 }
 
 export async function loadOptionalXml(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<Xml | undefined> {
-    let xmlFile = await loadFile(fileProvider, path, diagnostics('ignore'))
+    let xmlFile = await loadFile(fileProvider, path, 'text', diagnostics('ignore'))
     if (xmlFile == undefined) {
         return undefined
     }
@@ -44,8 +49,8 @@ export async function loadOptionalXml(fileProvider: FileProvider, path: string, 
     }
 }
 
-export async function loadFile(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<string | undefined> {
-    let { value, diags: fileOpenDiags } = await fileProvider.read(path)
+export async function loadFile<K extends FileKind>(fileProvider: FileProvider, path: string, kind: K, diags: Diagnostics): Promise<FileOutput[K] | undefined> {
+    let { value, diags: fileOpenDiags } = await fileProvider.read(path, kind)
     diags.push(...fileOpenDiags)
     if (value == undefined) {
         diags.push(`${path} is missing`)
