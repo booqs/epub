@@ -103,8 +103,18 @@ async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: F
                 content,
             }
         }
-        default:
+        default: {
             diags.push(`unexpected item: ${item['@media-type']}`)
-            return undefined
+            let content = await fileProvider.readBuffer(fullPath)
+            if (content == undefined) {
+                diags.push(`failed to read buffer file ${fullPath}`)
+                return undefined
+            }
+            return {
+                item,
+                mediaType,
+                content,
+            }
+        }
     }
 }
