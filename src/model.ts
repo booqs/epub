@@ -75,29 +75,6 @@ export type Package = {
     document: PackageDocument,
     items: PackageItem[],
 }
-export const knownManifestItemMediaTypes = [
-    'application/xhtml+xml', 'application/x-dtbncx+xml',
-    'text/css',
-    'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml',
-] as const
-export type ManifestItemMediaType = typeof knownManifestItemMediaTypes[number]
-export type PackageItem = HtmlItem | NcxItem | CssItem | ImageItem
-export type HtmlItem = {
-    mediaType: 'application/xhtml+xml',
-    html: Html,
-}
-export type NcxItem = {
-    mediaType: 'application/x-dtbncx+xml',
-    ncx: NcxDocument,
-}
-export type CssItem = {
-    mediaType: 'text/css',
-    css: string,
-}
-export type ImageItem = {
-    mediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/svg+xml',
-    image: BufferType,
-}
 
 export type PackageDocument = {
     package: [{
@@ -187,6 +164,23 @@ export type ManifestItem = {
     '@fallback'?: string,
     '@properties'?: string,
     '@media-overlay'?: string,
+}
+export const knownManifestItemMediaTypes = [
+    'application/xhtml+xml', 'application/x-dtbncx+xml',
+    'text/css',
+    'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml',
+] as const
+export type ManifestItemMediaType = typeof knownManifestItemMediaTypes[number]
+export type PackageItem = TextItem | BufferItem
+export type TextItem = {
+    item: ManifestItem,
+    mediaType: 'application/xhtml+xml' | 'application/x-dtbncx+xml' | 'text/css',
+    content: string,
+}
+export type BufferItem = {
+    item: ManifestItem,
+    mediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/svg+xml',
+    content: BufferType,
 }
 
 export type PackageSpine = {

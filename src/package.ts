@@ -68,36 +68,43 @@ export async function loadManifestItems(document: Unvalidated<PackageDocument>, 
     return items
 }
 
-async function loadManifestItem(manifestItem: Unvalidated<ManifestItem>, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<PackageItem> | undefined> {
-    let fullPath = manifestItem['@href']
+async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<PackageItem> | undefined> {
+    let fullPath = item['@href']
     if (fullPath == undefined) {
         diags.push(`manifest item is missing @href`)
         return undefined
     }
-    let mediaType = manifestItem['@media-type']
+    let mediaType = item['@media-type']
     switch (mediaType) {
         case 'application/xhtml+xml':
-            return {
-                mediaType,
-                html: parseHtml(await fileProvider.readText(fullPath), diags),
-            }
         case 'application/x-dtbncx+xml':
-            return {
-                mediaType,
-                ncx: parseXml(await fileProvider.readText(fullPath), diags),
+        case 'text/css': {
+            let content = await fileProvider.readText(fullPath)
+            if (content == undefined) {
+                diags.push(`failed to read text file ${fullPath}`)
+                return undefined
             }
-        case 'text/css':
             return {
+                item,
                 mediaType,
-                css: await fileProvider.readText(fullPath),
+                content,
             }
-        case 'image/jpeg': case 'image/png': case 'image/gif': case 'image/svg+xml':
+        }
+        case 'image/jpeg': case 'image/png':
+        case 'image/gif': case 'image/svg+xml': {
+            let content = await fileProvider.readBuffer(fullPath)
+            if (content == undefined) {
+                diags.push(`failed to read buffer file ${fullPath}`)
+                return undefined
+            }
             return {
+                item,
                 mediaType,
-                image: await fileProvider.readBuffer(fullPath),
+                content,
             }
+        }
         default:
-            diags.push(`unexpected item: ${manifestItem['@media-type']}`)
+            diags.push(`unexpected item: ${item['@media-type']}`)
             return undefined
     }
 }
