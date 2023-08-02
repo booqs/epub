@@ -1,235 +1,234 @@
 // Refere https://www.w3.org/TR/epub-33/ for the EPUB spec.
 
-import exp from "constants"
+export type LinkMediaType = string
+export type Language = string // TODO: define this better
+export type NumberString = `${number}`
+export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
 
-// This implementation is partial, but should cover most use cases
-export type Epub = {
-    // The REQUIRED container.xml file in the META-INF directory identifies the package documents available in the OCF abstract container.
-    // This library processe the container.xml file and extracts relevant information from it.
-    container: Container,
+export type Xml = XmlContainer
+export type XmlNode = XmlContainer | XmlText
+export type XmlContainer = {
+    [key in string]?: XmlNode[];
+}
+export type XmlText = {
+    '#text': string,
+}
+
+export type FullEpub = {
+    mimetype: 'application/epub+zip',
+    container: ContainerDocument,
     packages: Package[],
-    // The OPTIONAL encryption.xml file in the META-INF directory holds all encryption information on the contents of the container. If an EPUB creator encrypts any resources within the container, they MUST include an encryption.xml file to provide information about the encryption used.
-    // Spec provide further details on the encryption.xml file, but this library doesn't support processing it.
-    encryption?: Xml,
-    // The OPTIONAL signatures.xml file in the META-INF directory holds digital signatures for the container and its contents.
-    // Spec provide further details on the signatures.xml file, but this library doesn't support processing it.
-    signatures?: Xml,
-    // The OPTIONAL metadata.xml file in the META-INF directory is only for container-level metadata.
-    // If EPUB creators include a metadata.xml file, they SHOULD use only namespace-qualified elements [xml-names] in it. The file SHOULD contain the root element [xml] metadata in the namespace http://www.idpf.org/2013/metadata, but this specification allows other root elements for backwards compatibility.
-    metadata?: Xml,
-    //This specification reserves the OPTIONAL rights.xml file in the META-INF directory for the trusted exchange of EPUB publications among rights holders, intermediaries, and users.
-    // When EPUB creators do not include a rights.xml file, no part of the OCF abstract container is rights governed at the container level. Rights expressions might exist within the EPUB publications.
-    rights?: Xml,
-    // The OPTIONAL manifest.xml file in the META-INF directory provides a manifest of files in the container.
-    // The OCF specification does not mandate a format for the manifest.
-    manifest?: Xml,
+    encryption?: EncryptionDocument,
+    manifest?: ManifestDocument,
+    metadata?: MetadataDocument,
+    rights?: RightsDocument,
+    signatures?: SignaturesDocument,
 }
-export type Container = {
-    // Each rootfile element identifies the location of one package document in the EPUB container.
-    rootFiles: RootFile[],
-    // NOTE: Link elements are not supported by this library!
+export type ContainerDocument = {
+    container: [{
+        '@version': string,
+        rootfiles: [{
+            rootfile: {
+                '@full-path': string,
+                '@media-type': 'application/oebps-package+xml',
+            }[],
+        }],
+        links: {
+            link: {
+                '@href': string,
+                '@rel': string,
+                '@media-type'?: LinkMediaType,
+            }[],
+        }[],
+    }]
 }
-export type RootFile = {
-    fullPath: string,
-    mediaType: MediaType,
-}
+// TODO: implement this
+export type EncryptionDocument = Xml
+export type SignaturesDocument = Xml
+export type MetadataDocument = Xml
+export type RightsDocument = Xml
+export type ManifestDocument = Xml
+
 export type Package = {
-    // Full path to map to the root file.
     fullPath: string,
     document: PackageDocument,
-    ncx?: NCX,
 }
+
 export type PackageDocument = {
-    // This is resolved unique identifier for the package document.
-    // It is required by spec, but not enfoced by this library.
-    uid?: string,
-    // Thid is identifier of the metadata dc:identifier element that should be used as uid.
-    // It is required by spec, but not enfoced by this library.
-    uniqueIdentifier?: string,
-    metadata: PackageMetadata,
-    manifest: Manifest,
-    collection?: Collection[],
-    guide?: Guide,
-    spine: Spine,
-    // Version is required by the spec, but this library doesn't enforce it.
-    version?: string,
-    dir?: ContentDirection,
-    id?: string,
-    // The prefix attribute defines prefix mappings for use in property values.
-    // Spec elaborate on how prefix mappings are defined, but this library doesn't support processing them.
-    prefix?: string,
-    // This is xml:lang
-    lang?: Language,
-    extra?: XmlAttributes,
+    '@unique-identifier': string,
+    '@version': string,
+    '@prefix'?: string,
+    '@id'?: string,
+    '@dir'?: ContentDirection,
+    '@xml:lang'?: string,
+    metadata: [PackageMetadata],
+    manifest: [PackageManifest],
+    spine: [PackageSpine],
+    collection?: PackageCollection[],
+    guide?: [PackageGuide],
+    bindings?: XmlNode[],
 }
 export type PackageMetadata = {
-    title: MetadataTitle[],
-    identifier: MetadataIdentifier[],
-    language: MetadataLanguage[],
     meta?: Meta[],
-    link?: Link[],
-} & DublinCore
-export type MetadataTitle = {
-    value: string,
-    lang?: Language,
-    dir?: ContentDirection,
-    id?: string,
+    'dc:identifier'?: {
+        '@id'?: string,
+        '#text': string,
+    }[],
+    'dc:title'?: {
+        '@id'?: string,
+        '@dir'?: ContentDirection,
+        '@xml:lang'?: string,
+        '#text': string,
+    }[],
+    'dc:language'?: {
+        '@id'?: string,
+        '#text': string,
+    }[],
+} & Opf2Metadata & OptionalDcMetadata
+export const opf2MetadataKeys = [
+    'title', 'creator', 'subject', 'description', 'publisher', 'contributor',
+    'date', 'type', 'format', 'identifier', 'coverage', 'source', 'relation',
+    'rights', 'language',
+] as const
+export type Opf2MetadataKey = typeof opf2MetadataKeys[number]
+export type Opf2Metadata = {
+    [key in Opf2MetadataKey]?: {
+        '#text': string,
+    };
 }
-export type MetadataIdentifier = {
-    value: string,
-    id?: string,
-    extra?: XmlAttributes,
+export const optionalDcMetadataKeys = [
+    'dc:contributor', 'dc:coverage', 'dc:creator', 'dc:date', 'dc:description',
+    'dc:format', 'dc:publisher', 'dc:relation', 'dc:rights', 'dc:source',
+    'dc:subject', 'dc:type',
+] as const
+export type OptionalDcMetadataKey = typeof optionalDcMetadataKeys[number]
+export type OptionalDcMetadata = {
+    [key in OptionalDcMetadataKey]?: {
+        '@id'?: string,
+        '@dir'?: ContentDirection,
+        '@xml:lang'?: string,
+        '#text': string,
+    }[];
 }
-export type MetadataLanguage = {
-    value: string,
-    id?: string,
-    extra?: XmlAttributes,
+export type Meta = Opf2Meta | Opf3Meta
+export const knownMetaProperties = [
+    'alternate-script', 'authority', 'belongs-to-collection', 'collection-type', 'display-seq', 'file-as', 'group-position', 'identifier-type', 'role', 'source-of', 'term', 'title-type',
+] as const
+export type MetaProperty = | typeof knownMetaProperties[number] | `${string}:${string}`
+export type Opf3Meta = {
+    '@property': MetaProperty,
+    '@dir'?: ContentDirection,
+    '@id'?: string,
+    '@refines'?: string,
+    '@scheme'?: string,
+    '@xml:lang'?: string,
+    '#text': string,
 }
-export type DublinCoreKeys = 'contributor' | 'coverage' | 'creator' | 'date' | 'description' | 'format' | 'publisher' | 'relation' | 'right' | 'source' | 'subject' | 'type'
-export type DublinCore = {
-    [key in DublinCoreKeys]?: DublinCoreElement[];
+export type Opf2Meta = {
+    '@name': string,
+    '@content': string,
 }
-export type DublinCoreElement = {
-    value: string,
-    id?: string,
-    dir?: ContentDirection,
-    lang?: Language,
-    extra?: XmlAttributes,
-}
-export type Meta = Meta3 | Meta2
-export type Meta3 = {
-    property: MetaProperty,
-    dir?: ContentDirection,
-    id?: string,
-    refines?: string,
-    scheme?: string,
-    lang?: Language,
-    extra?: XmlAttributes,
-    value?: string,
-}
-export type MetaProperty = | 'alternate-script' | 'authority'
-    | 'belongs-to-collection' | 'collection-type' | 'display-seq' | 'file-as'
-    | 'group-position' | 'identifier-type'
-    | 'role' | 'source-of' | 'term' | 'title-type'
-    | `${string}:${string}`
-    | `-unknown-${string}`
-export type Meta2 = {
-    name: string,
-    content: string,
-    extra?: XmlAttributes,
-}
-export type Link = {
-    href: string,
-    hreflang?: string,
-    id?: string,
-    mediaType?: MediaType,
-    properties?: Properties,
-    refines?: string,
-    rel?: string,
-    extra?: XmlAttributes,
-}
-export type Manifest = {
-    id?: string,
-    items: ManifestItem[],
-}
-export type ManifestItem = {
-    href: string,
-    id: string,
-    mediaType: MediaType,
-    fallback?: string,
-    mediaOverlay: string,
-    properties: Properties,
-}
-export type Spine = {
-    id?: string,
-    pageProgressionDirection?: ContentDirection,
-    toc?: string,
-    itemRefs: SpineItemRef[],
-}
-export type SpineItemRef = {
-    idref: string,
-    id?: string,
-    linear?: boolean,
-    properties?: Properties,
-}
-export type Collection = {
-    role: Role,
-    id?: string,
-    dir?: ContentDirection,
-    lang?: Language,
-    links: Link[],
-}
-export type Guide = {
-    references: Reference[],
-}
-export type Reference = {
-    href: string,
-    type: string,
-    title?: string,
-}
-export type ReferenceType = | 'cover' | 'title-page' | 'toc' | 'index'
-    | 'glossary' | 'acknowledgements' | 'bibliography' | 'colophon'
-    | 'copyright-page' | 'dedication' | 'epigraph' | 'foreword'
-    | 'loi' | 'lot' | 'notes' | 'preface' | 'text'
-    | `-unknown-${string}`
 
-export type NCX = {
-    version?: string,
-    lang?: Language,
-    head?: NCXHead,
-    title?: string,
-    author?: string,
-    navMap: NavMap,
-    pageList?: PageList,
-    navList?: NavList,
+export type ManifestItemMediaType = | 'application/xhtml+xml' | 'application/x-dtbncx+xml'
+export type PackageManifest = {
+    '@id'?: string,
+    item: {
+        '@id': string,
+        '@href': string,
+        '@media-type': ManifestItemMediaType,
+        '@fallback'?: string,
+        '@properties'?: string,
+        '@media-overlay'?: string,
+    }[],
 }
-export type NCXHead = {
-    meta: Meta2[],
+
+export type PackageSpine = {
+    '@id'?: string,
+    '@toc'?: string,
+    '@page-progression-direction'?: ContentDirection,
+    itemref: {
+        '@idref': string,
+        '@linear'?: 'yes' | 'no',
+        '@id'?: string,
+        '@properties'?: string,
+    }[],
 }
-export type NavMap = {
-    navPoints: NavPoint[],
+
+export type CollectionRole = string
+export type PackageCollection = {
+    '@role': CollectionRole,
+    '@id'?: string,
+    '@dir'?: ContentDirection,
+    '@xml:lang'?: string,
+    metadata?: PackageMetadata[],
+    collection?: PackageCollection[],
+    link?: {
+        '@href': string,
+    }[],
+}
+
+export type PackageGuide = {
+    guide: [{
+        reference: {
+            '@type': GuideReferenceType,
+            '@href': string,
+            '@title'?: string,
+        }[],
+    }]
+}
+export const knownGuideReferenceTypes = [
+    'cover', 'title-page', 'toc', 'index', 'glossary', 'acknowledgements',
+    'bibliography', 'colophon', 'dedication', 'epigraph', 'foreword',
+    'loi', 'lot', 'notes', 'preface', 'text',
+] as const
+export type GuideReferenceType = typeof knownGuideReferenceTypes[number] | `other${string}`
+
+export type NcxDocument = {
+    ncx: [{
+        '@version': string,
+        '@xmlns': string,
+        '@xml:lang'?: string,
+        navMap: [{
+            navPoint: NavPoint[],
+        }],
+        head?: [{
+            meta: Opf2Meta[],
+        }],
+        docTitle?: [NcxText],
+        docAuthor?: [NcxText],
+        pageList?: [{
+            pageTarget: {
+                '@id': string,
+                '@value': string,
+                '@type': string,
+            }[],
+        }],
+        navList?: [{
+            navLabel: [NcxText],
+            navTarget: {
+                '@id': string,
+                navLabel: [NcxText],
+                content: [NcxContent],
+            }[],
+        }],
+    }]
 }
 export type NavPoint = {
-    className?: string,
-    id?: string,
-    label?: string,
-    playOrder?: number,
-    content?: NavContent,
-    navPoints?: NavPoint[],
+    '@id': string,
+    '@playOrder': NumberString,
+    navLabel: [NcxText],
+    content: [NcxContent],
+    navPoint?: NavPoint[],
 }
-export type NavContent = string
-export type PageList = {
-    pageTargets: PageTarget[],
+export type NcxContent = {
+    '@src': string,
 }
-export type PageTarget = {
-    label: string,
-    content: NavContent,
-    id?: string,
-    type?: string,
-    value?: number,
-}
-export type NavList = {
-    label?: string,
-    navTargets: NavTarget[],
-}
-export type NavTarget = {
-    content: NavContent,
-    label: string,
-    id?: string,
+export type NcxText = {
+    text: [XmlText],
 }
 
-export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
-export type MediaType = string
-export type Language = string
-export type Properties = string
-export type Role = string
-
-export type XmlAttributes = {
-    [key: string]: string,
-}
-export type XmlNode = {
-    name: string,
-    attrs?: XmlAttributes,
-    children?: XmlNode[],
-}
-export type Xml = XmlNode[]
+export type Unvalidated<T> = T extends string ? string
+    : T extends Array<infer U> ? Unvalidated<U>[]
+    : T extends object ? {
+        [P in keyof T]?: Unvalidated<T[P]>;
+    } : T;

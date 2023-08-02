@@ -4,7 +4,7 @@ import JSZip from 'jszip'
 import { parseEpub } from './index'
 import util from 'util'
 import { Diagnostic } from './diagnostic'
-import { FileProvider } from './epub'
+import { FileProvider } from './file'
 
 checkAllEpubs()
 
