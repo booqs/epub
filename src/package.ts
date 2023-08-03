@@ -1,5 +1,5 @@
 import { Diagnostics } from "./diagnostic"
-import { loadXml, FileProvider, getSiblingPath } from "./file"
+import { loadXml, FileProvider, getBasePath, pathRelativeTo } from "./file"
 import { ContainerDocument, ManifestItem, Package, PackageDocument, PackageItem, Unvalidated } from "./model"
 
 export function getRootfiles(container: Unvalidated<ContainerDocument> | undefined, diags: Diagnostics): string[] {
@@ -43,7 +43,7 @@ async function loadPackage(fullPath: string, fileProvider: FileProvider, diags: 
         diags.push(`${fullPath} package is missing`)
         return undefined
     }
-    let items = await loadManifestItems(document, relativeFileProvider(fileProvider, fullPath), diags)
+    let items = await loadManifestItems(document, fullPath, fileProvider, diags)
     return {
         fullPath,
         document,
@@ -51,18 +51,7 @@ async function loadPackage(fullPath: string, fileProvider: FileProvider, diags: 
     }
 }
 
-export function relativeFileProvider(fileProvider: FileProvider, fullPath: string): FileProvider {
-    return {
-        readText(relativePath) {
-            return fileProvider.readText(getSiblingPath(fullPath, relativePath))
-        },
-        readBinary(relativePath) {
-            return fileProvider.readBinary(getSiblingPath(fullPath, relativePath))
-        },
-    }
-}
-
-export async function loadManifestItems(document: Unvalidated<PackageDocument>, fileProvider: FileProvider, diags: Diagnostics): Promise<PackageItem[]> {
+export async function loadManifestItems(document: Unvalidated<PackageDocument>, documentPath: string, fileProvider: FileProvider, diags: Diagnostics): Promise<PackageItem[]> {
     let item = document?.package?.[0]?.manifest?.[0]?.item
     if (item == undefined) {
         diags.push({
@@ -71,20 +60,21 @@ export async function loadManifestItems(document: Unvalidated<PackageDocument>, 
         })
         return []
     }
-    let itemOrUndefineds = item.map(i => loadManifestItem(i, fileProvider, diags))
+    let base = getBasePath(documentPath)
+    let itemOrUndefineds = item.map(i => loadManifestItem(i, base, fileProvider, diags))
     let items = (await Promise.all(itemOrUndefineds)).filter((i): i is PackageItem => {
         return i !== undefined
     })
     return items
 }
 
-export async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: FileProvider, diags: Diagnostics): Promise<PackageItem | undefined> {
-    let fullPath = item['@href']
-    if (fullPath == undefined) {
+export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath: string, fileProvider: FileProvider, diags: Diagnostics): Promise<PackageItem | undefined> {
+    let href = item['@href']
+    if (href == undefined) {
         diags.push(`manifest item is missing @href`)
         return undefined
     }
-    fullPath = sanitizeHref(fullPath)
+    let fullPath = sanitizeHref(pathRelativeTo(basePath, href))
     let mediaType = item['@media-type']
     switch (mediaType) {
         case 'application/xhtml+xml':

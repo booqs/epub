@@ -7,10 +7,23 @@ export type FileProvider = {
     readBinary(path: string): Promise<unknown | undefined>,
 }
 
-export function getSiblingPath(path: string, sibling: string): string {
-    let components = path.split('/')
-    components[components.length - 1] = sibling
-    return components.join('/')
+export function getBasePath(path: string): string {
+    let index = path.lastIndexOf('/')
+    if (index == -1) {
+        return ''
+    } else {
+        return path.slice(0, index + 1)
+    }
+}
+
+export function pathRelativeTo(base: string, path: string): string {
+    if (path.startsWith('/')) {
+        return path
+    } else if (base.endsWith('/')) {
+        return base + path
+    } else {
+        return base + '/' + path
+    }
 }
 
 export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<Xml | undefined> {

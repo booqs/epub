@@ -1,8 +1,8 @@
 import { Diagnostics, diagnostics } from "./diagnostic"
 import { loadContainerDocument } from "./epub"
-import { FileProvider, loadXml } from "./file"
+import { FileProvider, getBasePath, loadXml } from "./file"
 import { ContainerDocument, ManifestItem, Opf2Meta, PackageDocument, PackageItem, Unvalidated } from "./model"
-import { getRootfiles, loadManifestItem, relativeFileProvider } from "./package"
+import { getRootfiles, loadManifestItem } from "./package"
 
 export function epubIterator(fileProvider: FileProvider) {
     let diags = diagnostics('epubIterator')
@@ -48,8 +48,8 @@ async function* containerIterator(container: Unvalidated<ContainerDocument>, fil
             continue
         }
         let document = documentOpt
-        let relativeProvider = relativeFileProvider(fileProvider, fullPath)
-        const loadItem: ItemLoader = item => loadManifestItem(item, relativeProvider, diags)
+        let base = getBasePath(fullPath)
+        const loadItem: ItemLoader = item => loadManifestItem(item, base, fileProvider, diags)
         yield {
             fullPath,
             document: documentOpt,
