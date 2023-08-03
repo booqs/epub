@@ -1,5 +1,5 @@
-import { Diagnostics } from "./diagnostic"
-import { ContainerDocument, PackageDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
+import { Diagnostic, Diagnostics, diagnostics } from "./diagnostic"
+import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, Package, PackageDocument, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
 import { ObjectValidator, array, number, object, oneOf, optional, string, validateObject } from "./validator"
 
 function field(validator: ObjectValidator['properties']) {
@@ -135,11 +135,63 @@ export function validateContainer(object: Unvalidated<ContainerDocument>, diags:
     return m.length === 0
 }
 
-export function validatePackage(object: Unvalidated<PackageDocument> | undefined, diags: Diagnostics): object is PackageDocument {
+export function validatePackage(object: Unvalidated<Package>, diags: Diagnostics): object is Package {
     diags = diags.scope('package')
-    let m = validateObject(object, PACKAGE)
+    let m = validateObject(object.document, PACKAGE)
     diags.push(...m.map(m => ({
         message: `failed validation: ${m}`,
     })))
-    return m.length === 0
+    return m.length === 0 && object.fullPath !== undefined
+}
+
+export function validateEpub(epub: Unvalidated<FullEpub>): { diags: Diagnostic[], value?: FullEpub } {
+    let diags = diagnostics('epub validation')
+    let {
+        container, packages,
+        mimetype,
+        encryption,
+        signatures,
+        manifest,
+        metadata,
+        rights,
+    } = epub
+    if (!container) {
+        diags.push({
+            message: 'missing container document',
+        })
+        return { diags: diags.all() }
+    }
+    if (!validateContainer(container, diags)) {
+        return {
+            diags: diags.all(),
+        }
+    }
+    let validatedPackages = packages?.filter((p): p is Package => validatePackage(p, diags))
+    if (validatedPackages === undefined || validatedPackages?.length !== packages?.length) {
+        diags.push('failed to validate some packages')
+        return {
+            diags: diags.all(),
+        }
+    }
+    if (mimetype !== 'application/epub+zip') {
+        diags.push({
+            message: `mimetype is not application/epub+zip: ${mimetype}`,
+        })
+        return {
+            diags: diags.all(),
+        }
+    }
+    return {
+        diags: diags.all(),
+        value: {
+            encryption: encryption as EncryptionDocument,
+            signatures: signatures as SignaturesDocument,
+            manifest: manifest as ManifestDocument,
+            metadata: metadata as MetadataDocument,
+            rights: rights as RightsDocument,
+            mimetype,
+            container,
+            packages: validatedPackages,
+        },
+    }
 }

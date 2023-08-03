@@ -5,6 +5,7 @@ import { parseEpub } from './index'
 import util from 'util'
 import { Diagnostic } from './diagnostic'
 import { FileProvider } from './file'
+import { validateEpub } from './epub-validators'
 
 const inputPath = process.argv[2]
 checkAllEpubs(inputPath ?? './epubs')
@@ -34,6 +35,10 @@ function printDiagnostics(diagnostics: Diagnostic[]) {
 async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
     const fileProvider = createZipFileProvider(fs.promises.readFile(epubFilePath))
     let { diags, value } = await parseEpub(fileProvider)
+    if (value) {
+        let { diags: validationDiags } = validateEpub(value)
+        diags.push(...validationDiags)
+    }
     return diags
 }
 
