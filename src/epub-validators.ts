@@ -3,7 +3,10 @@ import { ContainerDocument, PackageDocument, Unvalidated, knownGuideReferenceTyp
 import { ObjectValidator, array, number, object, oneOf, optional, string, validateObject } from "./validator"
 
 function field(validator: ObjectValidator['properties']) {
-    return array(object(validator))
+    return array(object(
+        validator,
+        key => key.startsWith('@xmlns:') || key.startsWith('@opf:') || key.startsWith('@xsi:'),
+    ))
 }
 
 function optField(validator: ObjectValidator['properties']) {
@@ -54,35 +57,24 @@ const DC_ELEMENT = optField({
     '@id': optString(),
     '@dir': optional(DIR),
     '@xml:lang': optString(),
-    '#text': oneOf(string(), number()),
-    // Extra fields
-    '@opf:role': optString(),
-    '@opf:file-as': optString(),
-    '@opf:event': optString(),
+    // TODO: make this required
+    '#text': optional(oneOf(string(), number())),
 })
 const METADATA = field({
-    // Extra fields
-    '@xmlns:opf': optString(),
-    '@xmlns:calibre': optString(),
-    '@xmlns:dcterms': optString(),
-    '@xmlns:dc': optString(),
-    '@xmlns:xsi': optString(),
-    // ----------------
     'dc:identifier': field({
         '@id': optString(),
-        '#text': string(),
-        // Extra fields
-        '@opf:scheme': optString(),
+        // TODO: make this required
+        '#text': optional(oneOf(string(), number())),
     }),
-    'dc:title': field({
+    'dc:title': optField({
         '@id': optString(),
-        '#text': string(),
+        // TODO: make this required
+        '#text': optional(oneOf(string(), number())),
     }),
     'dc:language': field({
         '@id': optString(),
-        '#text': string(),
-        // Extra fields
-        '@xsi:type': optString(),
+        // TODO: make this required
+        '#text': optional(oneOf(string(), number())),
     }),
     'dc:subject': DC_ELEMENT,
     'dc:description': DC_ELEMENT,
@@ -127,15 +119,6 @@ const PACKAGE = object({
         '@xmlns': 'http://www.idpf.org/2007/opf',
         '@unique-identifier': string(),
         '@version': string(),
-        // Extra fields
-        '@xmlns:opf': optString(),
-        '@xmlns:xsi': optString(),
-        '@xmlns:dc': optString(),
-        '@xmlns:dcterms': optString(),
-        '@xmlns:xlink': optString(),
-        '@xmlns:fo': optString(),
-        '@xmlns:fb': optString(),
-        // ----------------
         metadata: METADATA,
         manifest: MANIFEST,
         spine: SPINE,

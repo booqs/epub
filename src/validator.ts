@@ -26,6 +26,7 @@ export type ObjectValidator = {
     properties: {
         [key in string]: Validator
     },
+    extraKey?: (key: string, value: unknown) => boolean,
 }
 export type OptionalValidator = {
     type: 'optional',
@@ -91,10 +92,11 @@ export function array(items: Validator): ArrayValidator {
     }
 }
 
-export function object(properties: { [key in string]: Validator }): ObjectValidator {
+export function object(properties: ObjectValidator['properties'], extraKey?: ObjectValidator['extraKey']): ObjectValidator {
     return {
         type: 'object',
         properties,
+        extraKey,
     }
 }
 
@@ -175,7 +177,9 @@ export function validateObject<T extends Validator>(object: unknown, validator: 
                 for (let [key, value] of Object.entries(object)) {
                     let v = validator.properties[key]
                     if (v === undefined) {
-                        result.push(`unexpected key ${key}`)
+                        if (validator.extraKey === undefined || !validator.extraKey(key, value)) {
+                            result.push(`unexpected key ${key}`)
+                        }
                     } else {
                         validatorKeys.delete(key)
                         let current = validateObject(value, v)
@@ -183,7 +187,8 @@ export function validateObject<T extends Validator>(object: unknown, validator: 
                     }
                 }
                 result.push(...Array.from(validatorKeys)
-                    .filter(k => validator.properties[k].type !== 'optional')
+                    .filter(
+                        k => validator.properties[k].type !== 'optional')
                     .map(k => `missing key ${k}`))
                 return result
             }
