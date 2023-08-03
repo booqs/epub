@@ -1,7 +1,7 @@
-import { diagnostics } from "./diagnostic"
+import { Diagnostics, diagnostics } from "./diagnostic"
 import { loadContainerDocument } from "./epub"
 import { FileProvider, loadXml } from "./file"
-import { ContainerDocument, Opf2Meta, PackageDocument, Unvalidated } from "./model"
+import { ContainerDocument, ManifestItem, Opf2Meta, PackageDocument, PackageItem, Unvalidated } from "./model"
 import { getRootfiles, loadManifestItem, relativeFileProvider } from "./package"
 
 export function epubIterator(fileProvider: FileProvider) {
@@ -13,7 +13,6 @@ export function epubIterator(fileProvider: FileProvider) {
         }
         return _container
     }
-
     async function container() {
         let document = await getContainer()
         if (document == undefined) {
@@ -21,92 +20,12 @@ export function epubIterator(fileProvider: FileProvider) {
         }
         return document
     }
-
     async function* packages() {
-        let rootfiles = getRootfiles(await getContainer(), diags)
-        for (let fullPath of rootfiles) {
-            let optDocument: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
-            if (optDocument == undefined) {
-                diags.push(`${fullPath} package is missing`)
-                continue
-            }
-            let document = optDocument
-            let docItems = document.package?.[0]?.manifest?.[0]?.item
-            if (docItems === undefined) {
-                diags.push({
-                    message: `package is missing manifest items`,
-                    data: document,
-                })
-                continue
-            }
-            let defined = docItems
-            let relativeProvider = relativeFileProvider(fileProvider, fullPath)
-            yield {
-                fullPath,
-                document,
-                metadata(): Record<string, string[]> {
-                    let result: Record<string, string[]> = {}
-                    let metadatas = document.package?.[0]?.metadata
-                    if (metadatas == undefined || metadatas.length == 0) {
-                        diags.push({
-                            message: `package is missing metadata`,
-                            data: document,
-                        })
-                        return result
-                    }
-                    if (metadatas.length > 1) {
-                        diags.push({
-                            message: `package has multiple metadata`,
-                            data: document,
-                        })
-                        return result
-                    }
-                    let { meta, ...metadata } = metadatas[0]
-                    for (let [key, value] of Object.entries(metadata)) {
-                        if (!Array.isArray(value)) {
-                            diags.push({
-                                message: `package metadata is not an array`,
-                                data: value,
-                            })
-                            continue
-                        }
-                        let values = value
-                            .map(v => v['#text'])
-                            .filter((v): v is string => {
-                                if (v === undefined) {
-                                    diags.push(`package metadata is missing text: ${key}: ${value}`)
-                                }
-                                return v !== undefined
-                            })
-                        result[key] = values
-                    }
-                    for (let m of (meta ?? [])) {
-                        let { '@name': name, '@content': content } = (m as Opf2Meta)
-                        if (name === undefined || content === undefined) {
-                            continue
-                        }
-                        if (result[name] !== undefined) {
-                            result[name].push(content)
-                        } else {
-                            result[name] = [content]
-                        }
-                    }
-                    return result
-                },
-                items: async function* items() {
-                    for (let item of defined) {
-                        let loaded = await loadManifestItem(item, relativeProvider, diags)
-                        if (loaded === undefined) {
-                            diags.push({
-                                message: `failed to load manifest item`,
-                                data: item,
-                            })
-                            continue
-                        }
-                        yield loaded
-                    }
-                },
-            }
+        let container = await getContainer()
+        if (container == undefined) {
+            diags.push(`failed to load container.xml`)
+        } else {
+            yield* containerIterator(container, fileProvider, diags)
         }
     }
 
@@ -117,4 +36,156 @@ export function epubIterator(fileProvider: FileProvider) {
             return diags.all()
         },
     }
+}
+
+type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
+async function* containerIterator(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnostics) {
+    let rootfiles = getRootfiles(container, diags)
+    for (let fullPath of rootfiles) {
+        let documentOpt: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
+        if (documentOpt == undefined) {
+            diags.push(`${fullPath} package is missing`)
+            continue
+        }
+        let document = documentOpt
+        let relativeProvider = relativeFileProvider(fileProvider, fullPath)
+        const loadItem: ItemLoader = item => loadManifestItem(item, relativeProvider, diags)
+        yield {
+            fullPath,
+            document: documentOpt,
+            metadata(): Record<string, string[]> {
+                return getPackageMetadata(document, diags)
+            },
+            items() {
+                return manifestIterator(document, loadItem, diags)
+            },
+            spine() {
+                return spineIterator(document, loadItem, diags)
+            },
+        }
+    }
+}
+
+async function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnostics) {
+    let itemTag = document.package?.[0]?.manifest?.[0]?.item
+    if (itemTag == undefined) {
+        diags.push({
+            message: `package is missing manifest items`,
+            data: document,
+        })
+        return
+    }
+    let items = itemTag
+    for (let item of items) {
+        yield {
+            item,
+            async load() {
+                let loaded = await loadItem(item)
+                if (loaded === undefined) {
+                    diags.push({
+                        message: `failed to load manifest item`,
+                        data: item,
+                    })
+                    return undefined
+                }
+                return loaded
+            }
+        }
+    }
+}
+
+async function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnostics) {
+    let itemTag = document.package?.[0]?.spine?.[0]?.itemref
+    if (itemTag == undefined) {
+        diags.push({
+            message: `package is missing spine items`,
+            data: document,
+        })
+        return
+    }
+    let items = itemTag
+    for (let item of items) {
+        let idref = item['@idref']
+        if (idref == undefined) {
+            diags.push({
+                message: `spine item is missing idref`,
+                data: item,
+            })
+            continue
+        }
+        let manifestItemOpt = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == idref)
+        if (manifestItemOpt == undefined) {
+            diags.push({
+                message: `spine item is not in manifest`,
+                data: item,
+            })
+            continue
+        }
+        let manifestItem = manifestItemOpt
+        yield {
+            item,
+            manifestItem,
+            async load() {
+                let loaded = await loadItem(manifestItem)
+                if (loaded === undefined) {
+                    diags.push({
+                        message: `failed to load manifest item`,
+                        data: manifestItem,
+                    })
+                    return undefined
+                }
+                return loaded
+            }
+        }
+    }
+}
+
+function getPackageMetadata(document: Unvalidated<PackageDocument>, diags: Diagnostics) {
+    let result: Record<string, string[]> = {}
+    let metadatas = document.package?.[0]?.metadata
+    if (metadatas == undefined || metadatas.length == 0) {
+        diags.push({
+            message: `package is missing metadata`,
+            data: document,
+        })
+        return result
+    }
+    if (metadatas.length > 1) {
+        diags.push({
+            message: `package has multiple metadata`,
+            data: document,
+        })
+        return result
+    }
+    let { meta, ...metadata } = metadatas[0]
+    for (let [key, value] of Object.entries(metadata)) {
+        if (!Array.isArray(value)) {
+            diags.push({
+                message: `package metadata is not an array`,
+                data: value,
+            })
+            continue
+        }
+        let values = value
+            .map(v => v['#text'])
+            .filter((v): v is string => {
+                if (v === undefined) {
+                    diags.push(`package metadata is missing text: ${key}: ${value}`)
+                }
+                return v !== undefined
+            })
+        result[key] = values
+    }
+    for (let m of (meta ?? [])) {
+        let { '@name': name, '@content': content } = (m as Opf2Meta)
+        if (name === undefined || content === undefined) {
+            continue
+        }
+        if (result[name] !== undefined) {
+            result[name].push(content)
+        } else {
+            result[name] = [content]
+        }
+    }
+    return result
 }
