@@ -6,6 +6,10 @@ export type Unvalidated<T> = T extends string ? string
         [P in keyof T]?: Unvalidated<T[P]>;
     } : T;
 
+export type Attributes = {
+    [Attr in `@${string}`]?: string;
+}
+
 export type LinkMediaType = string
 export type Language = string // TODO: define this better
 export type NumberString = `${number}`
@@ -127,12 +131,12 @@ export const optionalDcMetadataKeys = [
 ] as const
 export type OptionalDcMetadataKey = typeof optionalDcMetadataKeys[number]
 export type OptionalDcMetadata = {
-    [key in OptionalDcMetadataKey]?: {
+    [key in OptionalDcMetadataKey]?: Array<{
         '@id'?: string,
         '@dir'?: ContentDirection,
         '@xml:lang'?: string,
         '#text': string,
-    }[];
+    } & Attributes>;
 }
 export type Meta = Opf2Meta | Opf3Meta
 export const knownMetaProperties = [
@@ -229,6 +233,7 @@ export const knownGuideReferenceTypes = [
     'cover', 'title-page', 'toc', 'index', 'glossary', 'acknowledgements',
     'bibliography', 'colophon', 'dedication', 'epigraph', 'foreword',
     'loi', 'lot', 'notes', 'preface', 'text',
+    'copyright-page',
 ] as const
 export type GuideReferenceType = typeof knownGuideReferenceTypes[number] | `other${string}`
 
