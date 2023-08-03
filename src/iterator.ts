@@ -62,6 +62,22 @@ async function* containerIterator(container: Unvalidated<ContainerDocument>, fil
             spine() {
                 return spineIterator(document, loadItem, diags)
             },
+            loadHref(ref: string) {
+                let manifestItem = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@href'] == ref)
+                if (manifestItem == undefined) {
+                    diags.push(`failed to find manifest item for href: ${ref}`)
+                    return undefined
+                }
+                return loadItem(manifestItem)
+            },
+            loadId(id: string) {
+                let manifestItem = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == id)
+                if (manifestItem == undefined) {
+                    diags.push(`failed to find manifest item for id: ${id}`)
+                    return undefined
+                }
+                return loadItem(manifestItem)
+            },
         }
     }
 }
