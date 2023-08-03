@@ -1,9 +1,8 @@
 import { Diagnostics } from "./diagnostic"
 import { loadXml, FileProvider, getSiblingPath } from "./file"
 import { ContainerDocument, ManifestItem, Package, PackageDocument, PackageItem, Unvalidated } from "./model"
-import { parseHtml, parseXml } from "./xml"
 
-export async function loadPackages(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<Package>[]> {
+export function getRootfiles(container: Unvalidated<ContainerDocument> | undefined, diags: Diagnostics): string[] {
     let rootfiles = container?.container?.[0]?.rootfiles?.[0]?.rootfile
     if (!rootfiles) {
         diags.push({
@@ -13,11 +12,18 @@ export async function loadPackages(container: Unvalidated<ContainerDocument>, fi
         return []
     }
     let paths = rootfiles?.map(r => r['@full-path']) ?? []
-    let packageOrUndefineds = paths.map(async p => {
+    return paths.filter((p): p is string => {
         if (p == undefined) {
             diags.push(`rootfile is missing @full-path`)
-            return undefined
+            return false
         }
+        return true
+    })
+}
+
+export async function loadPackages(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<Package>[]> {
+    let rootfiles = getRootfiles(container, diags)
+    let packageOrUndefineds = rootfiles.map(async p => {
         return loadPackage(p, fileProvider, diags)
     })
     let packages = (await Promise.all(packageOrUndefineds)).filter((p): p is Unvalidated<Package> => {
@@ -37,18 +43,22 @@ async function loadPackage(fullPath: string, fileProvider: FileProvider, diags: 
         diags.push(`${fullPath} package is missing`)
         return undefined
     }
-    let items = await loadManifestItems(document, {
+    let items = await loadManifestItems(document, relativeFileProvider(fileProvider, fullPath), diags)
+    return {
+        fullPath,
+        document,
+        items,
+    }
+}
+
+export function relativeFileProvider(fileProvider: FileProvider, fullPath: string): FileProvider {
+    return {
         readText(relativePath) {
             return fileProvider.readText(getSiblingPath(fullPath, relativePath))
         },
         readBuffer(relativePath) {
             return fileProvider.readBuffer(getSiblingPath(fullPath, relativePath))
         },
-    }, diags)
-    return {
-        fullPath,
-        document,
-        items,
     }
 }
 
@@ -68,7 +78,7 @@ export async function loadManifestItems(document: Unvalidated<PackageDocument>, 
     return items
 }
 
-async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<PackageItem> | undefined> {
+export async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<PackageItem> | undefined> {
     let fullPath = item['@href']
     if (fullPath == undefined) {
         diags.push(`manifest item is missing @href`)

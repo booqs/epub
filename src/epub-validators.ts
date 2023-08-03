@@ -1,5 +1,5 @@
 import { Diagnostic, Diagnostics, diagnostics } from "./diagnostic"
-import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, Package, PackageDocument, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
+import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
 import { ObjectValidator, array, number, object, oneOf, optional, string, validateObject } from "./validator"
 
 function field(validator: ObjectValidator['properties']) {
@@ -126,7 +126,7 @@ const PACKAGE = object({
     }),
 })
 
-export function validateContainer(object: Unvalidated<ContainerDocument>, diags: Diagnostics): object is ContainerDocument {
+export function validateContainer(object: Unvalidated<ContainerDocument> | undefined, diags: Diagnostics): object is ContainerDocument {
     diags = diags.scope('container')
     let m = validateObject(object, CONTAINER)
     diags.push(...m.map(m => ({
@@ -135,13 +135,19 @@ export function validateContainer(object: Unvalidated<ContainerDocument>, diags:
     return m.length === 0
 }
 
-export function validatePackage(object: Unvalidated<Package>, diags: Diagnostics): object is Package {
+export function validatePackageDocument(object: Unvalidated<PackageDocument> | undefined, diags: Diagnostics): object is PackageDocument {
     diags = diags.scope('package')
-    let m = validateObject(object.document, PACKAGE)
+    if (object === undefined) {
+        diags.push({
+            message: 'undefined package',
+        })
+        return false
+    }
+    let m = validateObject(object, PACKAGE)
     diags.push(...m.map(m => ({
         message: `failed validation: ${m}`,
     })))
-    return m.length === 0 && object.fullPath !== undefined
+    return m.length === 0
 }
 
 export function validateEpub(epub: Unvalidated<FullEpub>): { diags: Diagnostic[], value?: FullEpub } {
@@ -166,8 +172,22 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diags: Diagnostic[]
             diags: diags.all(),
         }
     }
-    let validatedPackages = packages?.filter((p): p is Package => validatePackage(p, diags))
-    if (validatedPackages === undefined || validatedPackages?.length !== packages?.length) {
+    let validatedPackages: Package[] = []
+    for (let pkg of packages ?? []) {
+        let document = pkg.document
+        if (!validatePackageDocument(document, diags)) {
+            return {
+                diags: diags.all(),
+            }
+        }
+        validatedPackages.push({
+            ...pkg,
+            fullPath: pkg.fullPath as string,
+            document,
+            items: pkg.items as PackageItem[],
+        })
+    }
+    if (validatedPackages.length !== packages?.length) {
         diags.push('failed to validate some packages')
         return {
             diags: diags.all(),

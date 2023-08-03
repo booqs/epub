@@ -14,18 +14,22 @@ export async function checkAllEpubs(inputPath: string) {
 
     let diagnostics: Diagnostic[] = []
     const files = getAllEpubFiles(inputPath)
+    const problems: string[] = []
     let count = 0
     for await (const file of files) {
-        if (++count % 100 == 0) {
+        if (++count % 10000 == 0) {
             console.log(`Checked ${count} files`)
         }
         const diags = await getEpubDiagnostic(file)
         diagnostics.push(...diags)
         if (diags.length > 0) {
             console.log(`File: ${file}::::::::::`)
+            problems.push(file)
             printDiagnostics(diags)
         }
     }
+    console.log('Problems:')
+    console.log(problems.join('\n'))
 }
 
 function printDiagnostics(diagnostics: Diagnostic[]) {
@@ -46,30 +50,40 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
     let zip: Promise<JSZip> | undefined
     return {
         async readText(path) {
-            if (!zip) {
-                zip = JSZip.loadAsync(fileContent)
-            }
-            const file = (await zip).file(path)
-            if (!file) {
+            try {
+                if (!zip) {
+                    zip = JSZip.loadAsync(fileContent)
+                }
+                const file = (await zip).file(path)
+                if (!file) {
+                    return undefined
+                }
+
+                const content = await file.async('text')
+
+                return content
+            } catch (e) {
+                console.error(`Error reading text ${path}: ${e}`)
                 return undefined
             }
-
-            const content = await file.async('text')
-
-            return content
         },
         async readBuffer(path) {
-            if (!zip) {
-                zip = JSZip.loadAsync(fileContent)
-            }
-            const file = (await zip).file(path)
-            if (!file) {
+            try {
+                if (!zip) {
+                    zip = JSZip.loadAsync(fileContent)
+                }
+                const file = (await zip).file(path)
+                if (!file) {
+                    return undefined
+                }
+
+                const content = await file.async('nodebuffer')
+
+                return content
+            } catch (e) {
+                console.error(`Error reading buffer ${path}: ${e}`)
                 return undefined
             }
-
-            const content = await file.async('nodebuffer')
-
-            return content
         }
     }
 }
