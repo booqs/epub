@@ -32,7 +32,7 @@ export function epubIterator(fileProvider: FileProvider) {
     return {
         container,
         packages,
-        diags() {
+        diagnostics() {
             return diags.all()
         },
     }

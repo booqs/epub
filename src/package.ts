@@ -69,6 +69,7 @@ export async function loadManifestItems(document: Unvalidated<PackageDocument>, 
 }
 
 export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath: string, fileProvider: FileProvider, diags: Diagnostics): Promise<PackageItem | undefined> {
+    diags = diags.scope(`manifest item: ${item['@id']}`)
     let href = item['@href']
     if (href == undefined) {
         diags.push(`manifest item is missing @href`)
@@ -82,7 +83,7 @@ export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath
         case 'text/css': {
             let content = await fileProvider.readText(fullPath)
             if (content == undefined) {
-                diags.push(`failed to read text file ${fullPath}`)
+                diags.push(`failed to read text file ${fullPath}, base: ${basePath}`)
                 return undefined
             }
             return {

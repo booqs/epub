@@ -17,13 +17,7 @@ export function getBasePath(path: string): string {
 }
 
 export function pathRelativeTo(base: string, path: string): string {
-    if (path.startsWith('/')) {
-        return path
-    } else if (base.endsWith('/')) {
-        return base + path
-    } else {
-        return base + '/' + path
-    }
+    return base + path
 }
 
 export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<Xml | undefined> {

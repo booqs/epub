@@ -6,6 +6,7 @@ import util from 'util'
 import { Diagnostic } from './diagnostic'
 import { FileProvider } from './file'
 import { validateEpub } from './epub-validators'
+import { epubIterator } from './iterator'
 
 const inputPath = process.argv[2]
 checkAllEpubs(inputPath ?? './epubs')
@@ -17,7 +18,7 @@ export async function checkAllEpubs(inputPath: string) {
     const problems: string[] = []
     let count = 0
     for await (const file of files) {
-        if (++count % 10000 == 0) {
+        if (++count % 100 == 0) {
             console.log(`Checked ${count} files`)
         }
         const diags = await getEpubDiagnostic(file)
@@ -28,8 +29,11 @@ export async function checkAllEpubs(inputPath: string) {
             printDiagnostics(diags)
         }
     }
-    console.log('Problems:')
-    console.log(problems.join('\n'))
+    console.log(`Checked ${count} files`)
+    if (problems.length > 0) {
+        console.log('Problems::::::::::')
+        console.log(problems.join('\n'))
+    }
 }
 
 function printDiagnostics(diagnostics: Diagnostic[]) {
@@ -43,6 +47,13 @@ async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
         let { diags: validationDiags } = validateEpub(value)
         diags.push(...validationDiags)
     }
+    let iterator = epubIterator(fileProvider)
+    // for await (const pkg of iterator.packages()) {
+    //     for await (let item of pkg.items()) {
+    //         item.load()
+    //     }
+    // }
+    diags.push(...iterator.diagnostics())
     return diags
 }
 
@@ -89,16 +100,14 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
 }
 
 async function* getAllEpubFiles(directoryPath: string): AsyncGenerator<string> {
-    const files: string[] = await fs.promises.readdir(directoryPath)
-
-    for (const file of files) {
-        const filePath = path.join(directoryPath, file)
-        const stat = await fs.promises.stat(filePath)
-
-        if (stat.isDirectory()) {
+    const stat = await fs.promises.stat(directoryPath)
+    if (stat.isDirectory()) {
+        const files: string[] = await fs.promises.readdir(directoryPath)
+        for (const file of files) {
+            const filePath = path.join(directoryPath, file)
             yield* getAllEpubFiles(filePath)
-        } else if (path.extname(filePath) === '.epub') {
-            yield filePath
         }
+    } else if (path.extname(directoryPath) === '.epub') {
+        yield directoryPath
     }
 }
