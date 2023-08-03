@@ -4,7 +4,7 @@ import { parseXml } from "./xml"
 
 export type FileProvider = {
     readText(path: string): Promise<string | undefined>,
-    readBuffer(path: string): Promise<unknown | undefined>,
+    readBinary(path: string): Promise<unknown | undefined>,
 }
 
 export function getSiblingPath(path: string, sibling: string): string {

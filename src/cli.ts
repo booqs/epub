@@ -67,7 +67,7 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
                 return undefined
             }
         },
-        async readBuffer(path) {
+        async readBinary(path) {
             try {
                 if (!zip) {
                     zip = JSZip.loadAsync(fileContent)
@@ -81,7 +81,7 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
 
                 return content
             } catch (e) {
-                console.error(`Error reading buffer ${path}: ${e}`)
+                console.error(`Error reading binary ${path}: ${e}`)
                 return undefined
             }
         }

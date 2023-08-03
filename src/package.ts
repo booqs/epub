@@ -56,8 +56,8 @@ export function relativeFileProvider(fileProvider: FileProvider, fullPath: strin
         readText(relativePath) {
             return fileProvider.readText(getSiblingPath(fullPath, relativePath))
         },
-        readBuffer(relativePath) {
-            return fileProvider.readBuffer(getSiblingPath(fullPath, relativePath))
+        readBinary(relativePath) {
+            return fileProvider.readBinary(getSiblingPath(fullPath, relativePath))
         },
     }
 }
@@ -78,7 +78,7 @@ export async function loadManifestItems(document: Unvalidated<PackageDocument>, 
     return items
 }
 
-export async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<PackageItem> | undefined> {
+export async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: FileProvider, diags: Diagnostics): Promise<PackageItem | undefined> {
     let fullPath = item['@href']
     if (fullPath == undefined) {
         diags.push(`manifest item is missing @href`)
@@ -98,33 +98,36 @@ export async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProv
             return {
                 item,
                 mediaType,
+                kind: 'text',
                 content,
             }
         }
         case 'application/x-font-ttf':
         case 'image/jpeg': case 'image/png':
         case 'image/gif': case 'image/svg+xml': {
-            let content = await fileProvider.readBuffer(fullPath)
+            let content = await fileProvider.readBinary(fullPath)
             if (content == undefined) {
-                diags.push(`failed to read buffer file ${fullPath}`)
+                diags.push(`failed to read binary file ${fullPath}`)
                 return undefined
             }
             return {
                 item,
                 mediaType,
+                kind: 'binary',
                 content,
             }
         }
         default: {
             diags.push(`unexpected item: ${item['@media-type']}`)
-            let content = await fileProvider.readBuffer(fullPath)
+            let content = await fileProvider.readBinary(fullPath)
             if (content == undefined) {
-                diags.push(`failed to read buffer file ${fullPath}`)
+                diags.push(`failed to read binary file ${fullPath}`)
                 return undefined
             }
             return {
                 item,
                 mediaType,
+                kind: 'unknown',
                 content,
             }
         }

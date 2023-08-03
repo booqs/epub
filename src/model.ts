@@ -15,7 +15,7 @@ export type Language = string // TODO: define this better
 export type NumberString = `${number}`
 export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
 
-export type BufferType = unknown
+export type BinaryType = unknown
 
 export type Xml = XmlContainer
 export type XmlNode = XmlContainer | XmlText
@@ -173,26 +173,34 @@ export const knownTextItems = [
     'application/xhtml+xml', 'application/x-dtbncx+xml',
     'text/css',
 ] as const
-export const knownBufferItems = [
+export const knownBinaryItems = [
     'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml',
     'application/x-font-ttf',
 ] as const
 export const knownManifestItemMediaTypes = [
-    ...knownTextItems, ...knownBufferItems,
+    ...knownTextItems, ...knownBinaryItems,
 ] as const
 export type TextItemMediaType = typeof knownTextItems[number]
-export type BufferItemMediaType = typeof knownBufferItems[number]
-export type ManifestItemMediaType = TextItemMediaType | BufferItemMediaType
-export type PackageItem = TextItem | BufferItem
+export type BinaryItemMediaType = typeof knownBinaryItems[number]
+export type ManifestItemMediaType = TextItemMediaType | BinaryItemMediaType
+export type PackageItem = TextItem | BinaryItem | UnknownItem
 export type TextItem = {
-    item: ManifestItem,
+    item: Unvalidated<ManifestItem>,
     mediaType: TextItemMediaType,
+    kind: 'text',
     content: string,
 }
-export type BufferItem = {
-    item: ManifestItem,
-    mediaType: BufferItemMediaType,
-    content: BufferType,
+export type BinaryItem = {
+    item: Unvalidated<ManifestItem>,
+    mediaType: BinaryItemMediaType,
+    kind: 'binary',
+    content: BinaryType,
+}
+export type UnknownItem = {
+    item: Unvalidated<ManifestItem>,
+    mediaType: string | undefined,
+    kind: 'unknown',
+    content: BinaryType,
 }
 
 export type PackageSpine = {
