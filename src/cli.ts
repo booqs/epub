@@ -8,11 +8,35 @@ import { FileProvider } from './file'
 import { validateEpub } from './epub-validators'
 import { epubIterator } from './iterator'
 
-const inputPath = process.argv[2]
-checkAllEpubs(inputPath ?? './epubs')
+main()
+function main() {
+    const inputPath = process.argv[2] ?? './epubs'
+    logTime('checkAllEpubs', () => checkAllEpubs(inputPath))
+}
+
+async function logTime(name: string, action: () => Promise<void>) {
+    const start = Date.now()
+    await action()
+    const end = Date.now()
+    console.log(`${name} took ${end - start}ms`)
+}
+
+export async function checkAllEpubsParallel(inputPath: string) {
+    const filesGenerator = getAllEpubFiles(inputPath)
+    let files: string[] = []
+    for await (const file of filesGenerator) {
+        files.push(file)
+    }
+    let promises = files.map(getEpubDiagnostic)
+    let results = await Promise.all(promises)
+    for (let diags of results) {
+        if (diags.length > 0) {
+            printDiagnostics(diags)
+        }
+    }
+}
 
 export async function checkAllEpubs(inputPath: string) {
-
     let diagnostics: Diagnostic[] = []
     const files = getAllEpubFiles(inputPath)
     const problems: string[] = []
@@ -47,13 +71,6 @@ async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
         let { diags: validationDiags } = validateEpub(value)
         diags.push(...validationDiags)
     }
-    let iterator = epubIterator(fileProvider)
-    // for await (const pkg of iterator.packages()) {
-    //     for await (let item of pkg.items()) {
-    //         item.load()
-    //     }
-    // }
-    diags.push(...iterator.diagnostics())
     return diags
 }
 
