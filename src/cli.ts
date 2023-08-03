@@ -66,24 +66,26 @@ function printDiagnostics(diagnostics: Diagnostic[]) {
 
 async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
     const fileProvider = createZipFileProvider(fs.promises.readFile(epubFilePath))
-    let { diags, value } = await parseEpub(fileProvider)
+    let { diagnostics, value } = await parseEpub(fileProvider)
     if (value) {
-        let { diags: validationDiags } = validateEpub(value)
-        diags.push(...validationDiags)
+        let { diagnostics: validationDiags } = validateEpub(value)
+        diagnostics.push(...validationDiags)
     }
-    return diags
+    return diagnostics
 }
 
 async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
     const fileProvider = createZipFileProvider(fs.promises.readFile(epubFilePath))
     let iterator = epubIterator(fileProvider)
     for await (let pkg of iterator.packages()) {
-        for (let item of pkg.itemsForProperty('nav')) {
-            console.log(item)
+        for (let item of pkg.items()) {
+            item.load()
+        }
+        for (let item of pkg.spine()) {
+            item.item
         }
     }
-    // return iterator.diagnostics()
-    return []
+    return iterator.diagnostics()
 }
 
 function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {

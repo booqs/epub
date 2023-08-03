@@ -1,4 +1,4 @@
-import { Diagnostic, Diagnostics, diagnostics } from "./diagnostic"
+import { Diagnostic, Diagnoser, diagnostics } from "./diagnostic"
 import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
 import { ObjectValidator, array, number, object, oneOf, optional, string, validateObject } from "./validator"
 
@@ -126,7 +126,7 @@ const PACKAGE = object({
     }),
 })
 
-export function validateContainer(object: Unvalidated<ContainerDocument> | undefined, diags: Diagnostics): object is ContainerDocument {
+export function validateContainer(object: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): object is ContainerDocument {
     diags = diags.scope('container')
     let m = validateObject(object, CONTAINER)
     diags.push(...m.map(m => ({
@@ -135,7 +135,7 @@ export function validateContainer(object: Unvalidated<ContainerDocument> | undef
     return m.length === 0
 }
 
-export function validatePackageDocument(object: Unvalidated<PackageDocument> | undefined, diags: Diagnostics): object is PackageDocument {
+export function validatePackageDocument(object: Unvalidated<PackageDocument> | undefined, diags: Diagnoser): object is PackageDocument {
     diags = diags.scope('package')
     if (object === undefined) {
         diags.push({
@@ -150,7 +150,7 @@ export function validatePackageDocument(object: Unvalidated<PackageDocument> | u
     return m.length === 0
 }
 
-export function validateEpub(epub: Unvalidated<FullEpub>): { diags: Diagnostic[], value?: FullEpub } {
+export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagnostic[], value?: FullEpub } {
     let diags = diagnostics('epub validation')
     let {
         container, packages,
@@ -165,11 +165,11 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diags: Diagnostic[]
         diags.push({
             message: 'missing container document',
         })
-        return { diags: diags.all() }
+        return { diagnostics: diags.all() }
     }
     if (!validateContainer(container, diags)) {
         return {
-            diags: diags.all(),
+            diagnostics: diags.all(),
         }
     }
     let validatedPackages: Package[] = []
@@ -177,7 +177,7 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diags: Diagnostic[]
         let document = pkg.document
         if (!validatePackageDocument(document, diags)) {
             return {
-                diags: diags.all(),
+                diagnostics: diags.all(),
             }
         }
         validatedPackages.push({
@@ -190,7 +190,7 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diags: Diagnostic[]
     if (validatedPackages.length !== packages?.length) {
         diags.push('failed to validate some packages')
         return {
-            diags: diags.all(),
+            diagnostics: diags.all(),
         }
     }
     if (mimetype !== 'application/epub+zip') {
@@ -198,11 +198,11 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diags: Diagnostic[]
             message: `mimetype is not application/epub+zip: ${mimetype}`,
         })
         return {
-            diags: diags.all(),
+            diagnostics: diags.all(),
         }
     }
     return {
-        diags: diags.all(),
+        diagnostics: diags.all(),
         value: {
             encryption: encryption as EncryptionDocument,
             signatures: signatures as SignaturesDocument,

@@ -6,10 +6,10 @@ export type Diagnostic = {
 }
 export type DiagnosticSeverity = 'error' | 'warning' | 'critical'
 export type DiagnosticScope = string | object
-export type Diagnostics = {
+export type Diagnoser = {
     push(...diagnostic: Array<Diagnostic | string>): void,
     all(): Diagnostic[],
-    scope(scope: DiagnosticScope): Diagnostics,
+    scope(scope: DiagnosticScope): Diagnoser,
 }
 
 export function diagnosticsToString(diagnostics: Diagnostic[]): string {
@@ -20,11 +20,11 @@ export function diagnosticToString(diagnostic: Diagnostic): string {
     return typeof diagnostic === 'string' ? diagnostic : JSON.stringify(diagnostic)
 }
 
-export function diagnostics(topScope: DiagnosticScope): Diagnostics {
-    function isDiagnostics(diag: InternalDiagnostic): diag is Diagnostics {
-        return typeof (diag as Diagnostics).all === 'function'
+export function diagnostics(topScope: DiagnosticScope): Diagnoser {
+    function isDiagnostics(diag: InternalDiagnostic): diag is Diagnoser {
+        return typeof (diag as Diagnoser).all === 'function'
     }
-    type InternalDiagnostic = Diagnostic | string | Diagnostics
+    type InternalDiagnostic = Diagnostic | string | Diagnoser
     let internal: InternalDiagnostic[] = []
     function flatten(diags: InternalDiagnostic[], scope: DiagnosticScope[]): Diagnostic[] {
         return diags.map((diag): Diagnostic[] => {

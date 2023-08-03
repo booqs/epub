@@ -1,8 +1,8 @@
 import { XMLParser } from "fast-xml-parser"
 import { Html, Xml } from "./model"
-import { Diagnostics } from "./diagnostic"
+import { Diagnoser } from "./diagnostic"
 
-export function parseXml(xml: string | undefined, diags: Diagnostics): Xml | undefined {
+export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undefined {
     if (xml === undefined) {
         diags.push('XML is undefined')
         return undefined
@@ -31,7 +31,7 @@ export function parseXml(xml: string | undefined, diags: Diagnostics): Xml | und
     }
 }
 
-export function parseHtml(xml: string | undefined, diags: Diagnostics): Html | undefined {
+export function parseHtml(xml: string | undefined, diags: Diagnoser): Html | undefined {
     if (xml === undefined) {
         diags.push('HTML is undefined')
         return undefined

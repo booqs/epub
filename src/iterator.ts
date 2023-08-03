@@ -1,4 +1,4 @@
-import { Diagnostics, diagnostics } from "./diagnostic"
+import { Diagnoser, diagnostics } from "./diagnostic"
 import { loadContainerDocument } from "./epub"
 import { FileProvider, getBasePath, loadXml } from "./file"
 import { ContainerDocument, ManifestItem, Opf2Meta, PackageDocument, PackageItem, Unvalidated } from "./model"
@@ -39,7 +39,7 @@ export function epubIterator(fileProvider: FileProvider) {
 }
 
 type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
-async function* containerIterator(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnostics) {
+async function* containerIterator(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser) {
     let rootfiles = getRootfiles(container, diags)
     for (let fullPath of rootfiles) {
         let documentOpt: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
@@ -89,7 +89,7 @@ async function* containerIterator(container: Unvalidated<ContainerDocument>, fil
     }
 }
 
-function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnostics) {
+function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
     let itemTag = document.package?.[0]?.manifest?.[0]?.item
     if (itemTag == undefined) {
         diags.push({
@@ -124,7 +124,7 @@ function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: Ite
     }
 }
 
-async function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnostics) {
+function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
     let itemTag = document.package?.[0]?.spine?.[0]?.itemref
     if (itemTag == undefined) {
         diags.push({
@@ -170,7 +170,7 @@ async function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: 
     }
 }
 
-function getPackageMetadata(document: Unvalidated<PackageDocument>, diags: Diagnostics) {
+function getPackageMetadata(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
     let result: Record<string, string[]> = {}
     let metadatas = document.package?.[0]?.metadata
     if (metadatas == undefined || metadatas.length == 0) {

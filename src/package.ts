@@ -1,8 +1,8 @@
-import { Diagnostics } from "./diagnostic"
+import { Diagnoser } from "./diagnostic"
 import { loadXml, FileProvider, getBasePath, pathRelativeTo } from "./file"
 import { ContainerDocument, ManifestItem, Package, PackageDocument, PackageItem, Unvalidated } from "./model"
 
-export function getRootfiles(container: Unvalidated<ContainerDocument> | undefined, diags: Diagnostics): string[] {
+export function getRootfiles(container: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): string[] {
     let rootfiles = container?.container?.[0]?.rootfiles?.[0]?.rootfile
     if (!rootfiles) {
         diags.push({
@@ -21,7 +21,7 @@ export function getRootfiles(container: Unvalidated<ContainerDocument> | undefin
     })
 }
 
-export async function loadPackages(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<Package>[]> {
+export async function loadPackages(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<Package>[]> {
     let rootfiles = getRootfiles(container, diags)
     let packageOrUndefineds = rootfiles.map(async p => {
         return loadPackage(p, fileProvider, diags)
@@ -37,7 +37,7 @@ export async function loadPackages(container: Unvalidated<ContainerDocument>, fi
     return packages
 }
 
-async function loadPackage(fullPath: string, fileProvider: FileProvider, diags: Diagnostics): Promise<Unvalidated<Package> | undefined> {
+async function loadPackage(fullPath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<Package> | undefined> {
     let document = await loadXml(fileProvider, fullPath, diags)
     if (document == undefined) {
         diags.push(`${fullPath} package is missing`)
@@ -51,7 +51,7 @@ async function loadPackage(fullPath: string, fileProvider: FileProvider, diags: 
     }
 }
 
-export async function loadManifestItems(document: Unvalidated<PackageDocument>, documentPath: string, fileProvider: FileProvider, diags: Diagnostics): Promise<PackageItem[]> {
+export async function loadManifestItems(document: Unvalidated<PackageDocument>, documentPath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<PackageItem[]> {
     let item = document?.package?.[0]?.manifest?.[0]?.item
     if (item == undefined) {
         diags.push({
@@ -68,7 +68,7 @@ export async function loadManifestItems(document: Unvalidated<PackageDocument>, 
     return items
 }
 
-export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath: string, fileProvider: FileProvider, diags: Diagnostics): Promise<PackageItem | undefined> {
+export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<PackageItem | undefined> {
     diags = diags.scope(`manifest item: ${item['@id']}`)
     let href = item['@href']
     if (href == undefined) {
