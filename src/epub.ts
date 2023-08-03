@@ -62,7 +62,7 @@ export async function loadSignaturesDocument(fileProvider: FileProvider, diags: 
 }
 
 export async function loadMimetype(fileProvider: FileProvider, diags: Diagnostics): Promise<string | undefined> {
-    let mimetype = fileProvider.readText('mimetype')
+    let mimetype = fileProvider.readText('mimetype', diags)
     if (!mimetype) {
         diags.push({
             message: 'missing mimetype',

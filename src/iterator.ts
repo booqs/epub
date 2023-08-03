@@ -59,6 +59,13 @@ async function* containerIterator(container: Unvalidated<ContainerDocument>, fil
             items() {
                 return manifestIterator(document, loadItem, diags)
             },
+            itemsForProperty: function* (property: string) {
+                for (let item of manifestIterator(document, loadItem, diags)) {
+                    if (item.properties().includes(property)) {
+                        yield item
+                    }
+                }
+            },
             spine() {
                 return spineIterator(document, loadItem, diags)
             },
@@ -82,7 +89,7 @@ async function* containerIterator(container: Unvalidated<ContainerDocument>, fil
     }
 }
 
-async function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnostics) {
+function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnostics) {
     let itemTag = document.package?.[0]?.manifest?.[0]?.item
     if (itemTag == undefined) {
         diags.push({
@@ -95,6 +102,13 @@ async function* manifestIterator(document: Unvalidated<PackageDocument>, loadIte
     for (let item of items) {
         yield {
             item,
+            properties() {
+                let properties = item['@properties']
+                if (properties == undefined) {
+                    return []
+                }
+                return properties.split(' ')
+            },
             async load() {
                 let loaded = await loadItem(item)
                 if (loaded === undefined) {

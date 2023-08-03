@@ -45,7 +45,7 @@ export async function checkAllEpubs(inputPath: string) {
         if (++count % 100 == 0) {
             console.log(`Checked ${count} files`)
         }
-        const diags = await getEpubDiagnostic(file)
+        const diags = await getEpubDiagnostic2(file)
         diagnostics.push(...diags)
         if (diags.length > 0) {
             console.log(`File: ${file}::::::::::`)
@@ -74,10 +74,22 @@ async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
     return diags
 }
 
+async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
+    const fileProvider = createZipFileProvider(fs.promises.readFile(epubFilePath))
+    let iterator = epubIterator(fileProvider)
+    for await (let pkg of iterator.packages()) {
+        for (let item of pkg.itemsForProperty('nav')) {
+            console.log(item)
+        }
+    }
+    // return iterator.diagnostics()
+    return []
+}
+
 function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
     let zip: Promise<JSZip> | undefined
     return {
-        async readText(path) {
+        async readText(path, diags) {
             try {
                 if (!zip) {
                     zip = JSZip.loadAsync(fileContent)
@@ -91,11 +103,13 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
 
                 return content
             } catch (e) {
-                console.error(`Error reading text ${path}: ${e}`)
+                diags.push({
+                    message: `Error reading text ${path}: ${e}`,
+                })
                 return undefined
             }
         },
-        async readBinary(path) {
+        async readBinary(path, diags) {
             try {
                 if (!zip) {
                     zip = JSZip.loadAsync(fileContent)
@@ -109,7 +123,9 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
 
                 return content
             } catch (e) {
-                console.error(`Error reading binary ${path}: ${e}`)
+                diags.push({
+                    message: `Error reading binary ${path}: ${e}`,
+                })
                 return undefined
             }
         }

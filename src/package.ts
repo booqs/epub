@@ -81,7 +81,7 @@ export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath
         case 'application/xhtml+xml':
         case 'application/x-dtbncx+xml':
         case 'text/css': {
-            let content = await fileProvider.readText(fullPath)
+            let content = await fileProvider.readText(fullPath, diags)
             if (content == undefined) {
                 diags.push(`failed to read text file ${fullPath}, base: ${basePath}`)
                 return undefined
@@ -96,7 +96,7 @@ export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath
         case 'application/x-font-ttf':
         case 'image/jpeg': case 'image/png':
         case 'image/gif': case 'image/svg+xml': {
-            let content = await fileProvider.readBinary(fullPath)
+            let content = await fileProvider.readBinary(fullPath, diags)
             if (content == undefined) {
                 diags.push(`failed to read binary file ${fullPath}`)
                 return undefined
@@ -110,7 +110,7 @@ export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath
         }
         default: {
             diags.push(`unexpected item: ${item['@media-type']}`)
-            let content = await fileProvider.readBinary(fullPath)
+            let content = await fileProvider.readBinary(fullPath, diags)
             if (content == undefined) {
                 diags.push(`failed to read binary file ${fullPath}`)
                 return undefined

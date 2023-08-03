@@ -1,10 +1,10 @@
 import { Xml } from "./model"
-import { Diagnostics } from "./diagnostic"
+import { Diagnostics, diagnostics } from "./diagnostic"
 import { parseXml } from "./xml"
 
 export type FileProvider = {
-    readText(path: string): Promise<string | undefined>,
-    readBinary(path: string): Promise<unknown | undefined>,
+    readText(path: string, diags: Diagnostics): Promise<string | undefined>,
+    readBinary(path: string, diags: Diagnostics): Promise<unknown | undefined>,
 }
 
 export function getBasePath(path: string): string {
@@ -21,7 +21,7 @@ export function pathRelativeTo(base: string, path: string): string {
 }
 
 export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<Xml | undefined> {
-    let xmlFile = await fileProvider.readText(path)
+    let xmlFile = await fileProvider.readText(path, diags)
     if (xmlFile == undefined) {
         diags.push(`${path} is missing`)
         return undefined
@@ -36,7 +36,7 @@ export async function loadXml(fileProvider: FileProvider, path: string, diags: D
 }
 
 export async function loadOptionalXml(fileProvider: FileProvider, path: string, diags: Diagnostics): Promise<Xml | undefined> {
-    let xmlFile = await fileProvider.readText(path)
+    let xmlFile = await fileProvider.readText(path, diagnostics('ignore'))
     if (xmlFile == undefined) {
         return undefined
     }
