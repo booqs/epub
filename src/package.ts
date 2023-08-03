@@ -74,6 +74,7 @@ async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: F
         diags.push(`manifest item is missing @href`)
         return undefined
     }
+    fullPath = sanitizeHref(fullPath)
     let mediaType = item['@media-type']
     switch (mediaType) {
         case 'application/xhtml+xml':
@@ -117,5 +118,13 @@ async function loadManifestItem(item: Unvalidated<ManifestItem>, fileProvider: F
                 content,
             }
         }
+    }
+}
+
+function sanitizeHref(href: string): string {
+    if (href.endsWith('/')) {
+        return href.substring(0, href.length - 1)
+    } else {
+        return href
     }
 }
