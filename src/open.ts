@@ -1,5 +1,5 @@
 import { Diagnoser, diagnostics } from "./diagnostic"
-import { loadContainerDocument } from "./epub"
+import { loadContainerDocument } from "./parse"
 import { FileProvider, getBasePath, loadXml } from "./file"
 import { ContainerDocument, ManifestItem, NavDocument, NavList, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated } from "./model"
 import { getRootfiles, loadManifestItem } from "./package"

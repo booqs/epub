@@ -5,8 +5,8 @@ import { parseEpub } from './index'
 import util from 'util'
 import { Diagnostic } from './diagnostic'
 import { FileProvider } from './file'
-import { validateEpub } from './epub-validators'
-import { openEpub } from './iterator'
+import { validateEpub } from './validate'
+import { openEpub } from './open'
 
 main()
 function main() {

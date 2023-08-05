@@ -1,2 +1,2 @@
 export * from './model'
-export { parseEpub } from './epub'
+export { parseEpub } from './parse'
