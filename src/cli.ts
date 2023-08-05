@@ -6,7 +6,7 @@ import util from 'util'
 import { Diagnostic } from './diagnostic'
 import { FileProvider } from './file'
 import { validateEpub } from './epub-validators'
-import { epubIterator } from './iterator'
+import { openEpub } from './iterator'
 
 main()
 function main() {
@@ -76,7 +76,7 @@ async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
 
 async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
     const fileProvider = createZipFileProvider(fs.promises.readFile(epubFilePath))
-    let iterator = epubIterator(fileProvider)
+    let iterator = openEpub(fileProvider)
     for await (let pkg of iterator.packages()) {
         for (let item of pkg.items()) {
             item.load()

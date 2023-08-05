@@ -5,7 +5,7 @@ import { ContainerDocument, ManifestItem, NavPoint, NcxDocument, Opf2Meta, Packa
 import { getRootfiles, loadManifestItem } from "./package"
 import { parseXml } from "./xml"
 
-export function epubIterator(fileProvider: FileProvider) {
+export function openEpub(fileProvider: FileProvider) {
     let diags = diagnostics('epubIterator')
     let _container: Promise<Unvalidated<ContainerDocument> | undefined> | undefined
     function getContainer() {
@@ -26,7 +26,7 @@ export function epubIterator(fileProvider: FileProvider) {
         if (container == undefined) {
             diags.push(`failed to load container.xml`)
         } else {
-            yield* containerIterator(container, fileProvider, diags)
+            yield* packageIterator(container, fileProvider, diags)
         }
     }
 
@@ -40,64 +40,69 @@ export function epubIterator(fileProvider: FileProvider) {
 }
 
 type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
-async function* containerIterator(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser) {
+async function* packageIterator(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser) {
     let rootfiles = getRootfiles(container, diags)
     for (let fullPath of rootfiles) {
-        let documentOpt: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
-        if (documentOpt == undefined) {
+        let document: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
+        if (document == undefined) {
             diags.push(`${fullPath} package is missing`)
             continue
         }
-        let document = documentOpt
         let base = getBasePath(fullPath)
         const loadItem: ItemLoader = item => loadManifestItem(item, base, fileProvider, diags)
         yield {
             fullPath,
-            document: documentOpt,
-            metadata(): Record<string, string[]> {
-                return getPackageMetadata(document, diags)
-            },
-            items() {
-                return manifestIterator(document, loadItem, diags)
-            },
-            itemsForProperty: function* (property: string) {
-                for (let item of manifestIterator(document, loadItem, diags)) {
-                    if (item.properties().includes(property)) {
-                        yield item
-                    }
+            ...openPackage(document, loadItem, diags),
+        }
+    }
+}
+
+function openPackage(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
+    return {
+        document,
+        metadata(): Record<string, string[]> {
+            return getPackageMetadata(document, diags)
+        },
+        items() {
+            return manifestIterator(document, loadItem, diags)
+        },
+        itemsForProperty: function* (property: string) {
+            for (let item of manifestIterator(document, loadItem, diags)) {
+                if (item.properties().includes(property)) {
+                    yield item
                 }
-            },
-            spine() {
-                return spineIterator(document, loadItem, diags)
-            },
-            loadHref(ref: string) {
-                let manifestItem = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@href'] == ref)
-                if (manifestItem == undefined) {
-                    diags.push(`failed to find manifest item for href: ${ref}`)
-                    return undefined
-                }
-                return loadItem(manifestItem)
-            },
-            loadId(id: string) {
-                let manifestItem = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == id)
-                if (manifestItem == undefined) {
-                    diags.push(`failed to find manifest item for id: ${id}`)
-                    return undefined
-                }
-                return loadItem(manifestItem)
-            },
-            async ncx() {
-                let optNcxDocument = await getNcx(document, loadItem, diags)
-                if (optNcxDocument == undefined) {
-                    return undefined
-                }
-                let ncxDocument = optNcxDocument
-                return {
-                    document: ncxDocument,
-                    toc() {
-                        return ncxIterator(ncxDocument, diags)
-                    },
-                }
+            }
+        },
+        spine() {
+            return spineIterator(document, loadItem, diags)
+        },
+        loadHref(ref: string) {
+            let manifestItem = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@href'] == ref)
+            if (manifestItem == undefined) {
+                diags.push(`failed to find manifest item for href: ${ref}`)
+                return undefined
+            }
+            return loadItem(manifestItem)
+        },
+        loadId(id: string) {
+            let manifestItem = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == id)
+            if (manifestItem == undefined) {
+                diags.push(`failed to find manifest item for id: ${id}`)
+                return undefined
+            }
+            return loadItem(manifestItem)
+        },
+        async ncx() {
+            let optNcxDocument = await getNcx(document, loadItem, diags)
+            if (optNcxDocument == undefined) {
+                return undefined
+            }
+            let ncxDocument = optNcxDocument
+            return {
+                document: ncxDocument,
+                toc() {
+                    return ncxIterator(ncxDocument, diags)
+                },
             }
         }
     }
