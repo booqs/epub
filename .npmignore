@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+src
+*.ts
+*.tsx
+!*.d.ts
+.tsbuildinfo
+.eslintrc.js
+epubs/**/*
