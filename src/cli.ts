@@ -89,21 +89,15 @@ async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
 }
 
 function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
-    let zip: Promise<JSZip> | undefined
+    let zip = JSZip.loadAsync(fileContent)
     return {
         async readText(path, diags) {
             try {
-                if (!zip) {
-                    zip = JSZip.loadAsync(fileContent)
-                }
                 const file = (await zip).file(path)
                 if (!file) {
                     return undefined
                 }
-
-                const content = await file.async('text')
-
-                return content
+                return file.async('text')
             } catch (e) {
                 diags.push({
                     message: `Error reading text ${path}: ${e}`,
@@ -113,17 +107,11 @@ function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
         },
         async readBinary(path, diags) {
             try {
-                if (!zip) {
-                    zip = JSZip.loadAsync(fileContent)
-                }
                 const file = (await zip).file(path)
                 if (!file) {
                     return undefined
                 }
-
-                const content = await file.async('nodebuffer')
-
-                return content
+                return file.async('nodebuffer')
             } catch (e) {
                 diags.push({
                     message: `Error reading binary ${path}: ${e}`,
