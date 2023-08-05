@@ -1,5 +1,5 @@
 import { Diagnostic, Diagnoser, diagnostics } from "./diagnostic"
-import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, NcxDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
+import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
 import {
     ObjectValidator, array, custom, object, oneOf, optional,
     string, validateObject,
@@ -191,6 +191,41 @@ const NCX = object({
     }),
 })
 
+const OL = field({
+    li: field({
+        a: field({
+            '@href': string(),
+            '#text': string(),
+        }),
+        span: optField({
+            '@class': string(),
+            '#text': string(),
+        }),
+        ol: optional(custom<object>((value) => {
+            return validateObject(value, OL)
+        }))
+    }),
+})
+
+
+const NAV_DOCUMENT = object({
+    html: field({
+        '@xmlns': 'http://www.w3.org/1999/xhtml',
+        '@xmlns:epub': 'http://www.idpf.org/2007/ops',
+        head: field({
+            title: optField({
+                '#text': string(),
+            }),
+        }),
+        body: field({
+            nav: field({
+                '@epub:type': oneOf('toc', 'landmarks', 'page-list'),
+                ol: OL,
+            }),
+        }),
+    }),
+})
+
 export function validateContainer(object: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): object is ContainerDocument {
     diags = diags.scope('container')
     let m = validateObject(object, CONTAINER)
@@ -224,6 +259,21 @@ export function validateNcx(object: Unvalidated<NcxDocument> | undefined, diags:
         return false
     }
     let m = validateObject(object, NCX)
+    diags.push(...m.map(m => ({
+        message: `failed validation: ${m}`,
+    })))
+    return m.length === 0
+}
+
+export function validateNavDocument(object: Unvalidated<NavDocument> | undefined, diags: Diagnoser): object is NavDocument {
+    diags = diags.scope('nav')
+    if (object === undefined) {
+        diags.push({
+            message: 'undefined nav',
+        })
+        return false
+    }
+    let m = validateObject(object, NAV_DOCUMENT)
     diags.push(...m.map(m => ({
         message: `failed validation: ${m}`,
     })))
@@ -278,6 +328,21 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagno
             } else {
                 let parsed: Unvalidated<NcxDocument> | undefined = parseXml(item.content, diags.scope('ncx'))
                 validateNcx(parsed, diags)
+            }
+        }
+        let navItem = pkg.items?.find(i => i.item?.['@properties']?.includes('nav'))
+        if (navItem) {
+            if (!navItem.content) {
+                diags.push({
+                    message: `nav id content not found: ${navItem}`,
+                })
+            } else if (typeof navItem.content !== 'string') {
+                diags.push({
+                    message: `nav id content is not a string: ${navItem.item}`,
+                })
+            } else {
+                let parsed: Unvalidated<NavDocument> | undefined = parseXml(navItem.content, diags.scope('nav'))
+                validateNavDocument(parsed, diags)
             }
         }
         validatedPackages.push({
