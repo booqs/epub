@@ -20,6 +20,8 @@ export type AnyValidator = {
 export type ArrayValidator = {
     type: 'array',
     items: Validator,
+    minLength?: number,
+    maxLength?: number,
 }
 export type ObjectValidator = {
     type: 'object',
@@ -85,10 +87,11 @@ export function any(): AnyValidator {
     }
 }
 
-export function array(items: Validator): ArrayValidator {
+export function array(items: Validator, minLength?: number, maxLength?: number): ArrayValidator {
     return {
         type: 'array',
         items,
+        minLength, maxLength,
     }
 }
 
@@ -157,9 +160,13 @@ export function validateObject<T extends Validator>(object: unknown, validator: 
         case 'array': {
             if (!Array.isArray(object)) {
                 return [`expected array but got ${object}`]
+            } else if (validator.minLength !== undefined && object.length < validator.minLength) {
+                return [`expected array with length >= ${validator.minLength} but got ${object.length}`]
+            } else if (validator.maxLength !== undefined && object.length > validator.maxLength) {
+                return [`expected array with length <= ${validator.maxLength} but got ${object.length}`]
             } else {
                 let inner = object
-                    .map((item, index) => validateObject(item, validator.items))
+                    .map(item => validateObject(item, validator.items))
                     .flat()
                 return inner
             }

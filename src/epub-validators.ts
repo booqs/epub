@@ -161,11 +161,22 @@ export function validateNavDocument(object: Unvalidated<NavDocument> | undefined
     return m.length === 0
 }
 
+function valideExtraKey(key: string) {
+    return key.startsWith('@xmlns:') || key.startsWith('@opf:') || key.startsWith('@xsi:')
+}
 function field(validator: ObjectValidator['properties']) {
     return array(object(
         validator,
-        key => key.startsWith('@xmlns:') || key.startsWith('@opf:') || key.startsWith('@xsi:'),
-    ))
+        valideExtraKey,
+    ), 1, 1)
+}
+
+function collection(validator: ObjectValidator['properties']) {
+    return array(object(validator, valideExtraKey), 1)
+}
+
+function optCollection(validator: ObjectValidator['properties']) {
+    return optional(collection(validator))
 }
 
 function optField(validator: ObjectValidator['properties']) {
@@ -192,13 +203,13 @@ const CONTAINER = object({
         '@version': '1.0',
         '@xmlns': 'urn:oasis:names:tc:opendocument:xmlns:container',
         rootfiles: field({
-            rootfile: field({
+            rootfile: collection({
                 '@full-path': string(),
                 '@media-type': string(),
             }),
         }),
         links: optField({
-            link: field({
+            link: collection({
                 '@href': string(),
                 '@rel': string(),
                 '@media-type': optString(),
@@ -223,7 +234,7 @@ const OPF3META = object({
     '#text': string(),
 })
 const META = optional(array(oneOf(OPF2META, OPF3META)))
-const DC_ELEMENT = optField({
+const DC_ELEMENT = optCollection({
     '@id': optString(),
     '@dir': optional(DIR),
     '@xml:lang': optString(),
@@ -231,17 +242,17 @@ const DC_ELEMENT = optField({
     '#text': optString(),
 })
 const METADATA = field({
-    'dc:identifier': field({
+    'dc:identifier': collection({
         '@id': optString(),
         // TODO: make this required
         '#text': optString(),
     }),
-    'dc:title': optField({
+    'dc:title': collection({
         '@id': optString(),
         // TODO: make this required
         '#text': optString(),
     }),
-    'dc:language': field({
+    'dc:language': collection({
         '@id': optString(),
         // TODO: make this required
         '#text': optString(),
@@ -258,7 +269,7 @@ const METADATA = field({
 })
 const SPINE = field({
     '@toc': optString(),
-    itemref: field({
+    itemref: collection({
         '@idref': string(),
         '@id': optString(),
         '@linear': optString(),
@@ -267,7 +278,7 @@ const SPINE = field({
 })
 const MANIFEST = field({
     '@id': optString(),
-    item: field({
+    item: collection({
         '@id': string(),
         '@href': string(),
         '@media-type': oneOf(...knownManifestItemMediaTypes),
@@ -277,7 +288,7 @@ const MANIFEST = field({
     })
 })
 const GUIDE = optField({
-    reference: field({
+    reference: collection({
         '@type': oneOf(...knownGuideReferenceTypes, ''),
         '@title': optString(),
         '@href': string(),
@@ -285,7 +296,7 @@ const GUIDE = optField({
 })
 // Validator for the package document
 const PACKAGE = object({
-    package: field({
+    package: collection({
         '@xmlns': 'http://www.idpf.org/2007/opf',
         '@unique-identifier': string(),
         '@version': string(),
@@ -304,7 +315,7 @@ const LABEL = field({
 const CONTENT = field({
     '@src': string(),
 })
-const NAV_POINT = field({
+const NAV_POINT = collection({
     '@id': string(),
     '@playOrder': numberString(),
     navLabel: LABEL,
@@ -320,7 +331,7 @@ const NCX = object({
         '@xmlns': optString(),
         '@xml:lang': optString(),
         head: optField({
-            meta: optField({
+            meta: optCollection({
                 '@name': string(),
                 '@content': string(),
             }),
@@ -334,7 +345,7 @@ const NCX = object({
             '@class': optString(),
             '@id': optString(),
             navLabel: LABEL,
-            pageTarget: field({
+            pageTarget: collection({
                 '@playOrder': numberString(),
                 '@value': numberString(),
                 '@type': optString(),
@@ -346,8 +357,8 @@ const NCX = object({
     }),
 })
 
-const OL = field({
-    li: field({
+const OL = collection({
+    li: collection({
         a: field({
             '@href': string(),
             '#text': string(),
