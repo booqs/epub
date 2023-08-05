@@ -38,7 +38,7 @@ export type UnionValidator = {
 }
 export type CustomValidator<T> = {
     type: 'custom',
-    validate: (value: unknown) => value is T,
+    validate: (value: unknown) => ValidationError[],
     message?: string,
 }
 
@@ -114,7 +114,7 @@ export function oneOf(...validators: Validator[]): UnionValidator {
     }
 }
 
-export function custom<T>(validate: (value: unknown) => value is T): CustomValidator<T> {
+export function custom<T>(validate: (value: unknown) => ValidationError[]): CustomValidator<T> {
     return {
         type: 'custom',
         validate,
@@ -212,11 +212,8 @@ export function validateObject<T extends Validator>(object: unknown, validator: 
             return [`expected one of ${validator.validators.map(toString).join(', ')} but got '${object}'`]
         }
         case 'custom': {
-            if (validator.validate(object)) {
-                return []
-            } else {
-                return [`custom validation failed: ${validator.message ?? 'unknown reason'}`]
-            }
+            return validator.validate(object)
+                .map(m => `${validator.message ?? 'custom'}: ${m}`)
         }
         default:
             return assertNever(validator)

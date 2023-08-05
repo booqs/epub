@@ -1,6 +1,10 @@
 import { Diagnostic, Diagnoser, diagnostics } from "./diagnostic"
-import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
-import { ObjectValidator, array, number, object, oneOf, optional, string, validateObject } from "./validator"
+import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, NcxDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
+import {
+    ObjectValidator, array, custom, object, oneOf, optional,
+    string, validateObject,
+} from "./validator"
+import { parseXml } from "./xml"
 
 function field(validator: ObjectValidator['properties']) {
     return array(object(
@@ -15,6 +19,17 @@ function optField(validator: ObjectValidator['properties']) {
 
 function optString() {
     return optional(string())
+}
+
+function numberString() {
+    return custom((value) => {
+        const num = Number(value)
+        if (isNaN(num)) {
+            return [`Expected a number, got ${value}`]
+        } else {
+            return []
+        }
+    })
 }
 
 const CONTAINER = object({
@@ -58,23 +73,23 @@ const DC_ELEMENT = optField({
     '@dir': optional(DIR),
     '@xml:lang': optString(),
     // TODO: make this required
-    '#text': optional(oneOf(string(), number())),
+    '#text': optString(),
 })
 const METADATA = field({
     'dc:identifier': field({
         '@id': optString(),
         // TODO: make this required
-        '#text': optional(oneOf(string(), number())),
+        '#text': optString(),
     }),
     'dc:title': optField({
         '@id': optString(),
         // TODO: make this required
-        '#text': optional(oneOf(string(), number())),
+        '#text': optString(),
     }),
     'dc:language': field({
         '@id': optString(),
         // TODO: make this required
-        '#text': optional(oneOf(string(), number())),
+        '#text': optString(),
     }),
     'dc:subject': DC_ELEMENT,
     'dc:description': DC_ELEMENT,
@@ -126,6 +141,56 @@ const PACKAGE = object({
     }),
 })
 
+const LABEL = field({
+    text: field({
+        '#text': string(),
+    }),
+})
+const CONTENT = field({
+    '@src': string(),
+})
+const NAV_POINT = field({
+    '@id': string(),
+    '@playOrder': numberString(),
+    navLabel: LABEL,
+    content: CONTENT,
+    navPoint: optional(custom<object>((value) => {
+        return validateObject(value, NAV_POINT)
+    })),
+})
+
+const NCX = object({
+    ncx: field({
+        '@version': string(),
+        '@xmlns': optString(),
+        '@xml:lang': optString(),
+        head: optField({
+            meta: optField({
+                '@name': string(),
+                '@content': string(),
+            }),
+        }),
+        docTitle: optional(LABEL),
+        docAuthor: optional(LABEL),
+        navMap: field({
+            navPoint: NAV_POINT,
+        }),
+        pageList: optField({
+            '@class': optString(),
+            '@id': optString(),
+            navLabel: LABEL,
+            pageTarget: field({
+                '@playOrder': numberString(),
+                '@value': numberString(),
+                '@type': optString(),
+                '@id': optString(),
+                navLabel: LABEL,
+                content: CONTENT,
+            }),
+        }),
+    }),
+})
+
 export function validateContainer(object: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): object is ContainerDocument {
     diags = diags.scope('container')
     let m = validateObject(object, CONTAINER)
@@ -144,6 +209,21 @@ export function validatePackageDocument(object: Unvalidated<PackageDocument> | u
         return false
     }
     let m = validateObject(object, PACKAGE)
+    diags.push(...m.map(m => ({
+        message: `failed validation: ${m}`,
+    })))
+    return m.length === 0
+}
+
+export function validateNcx(object: Unvalidated<NcxDocument> | undefined, diags: Diagnoser): object is NcxDocument {
+    diags = diags.scope('ncx')
+    if (object === undefined) {
+        diags.push({
+            message: 'undefined ncx',
+        })
+        return false
+    }
+    let m = validateObject(object, NCX)
     diags.push(...m.map(m => ({
         message: `failed validation: ${m}`,
     })))
@@ -178,6 +258,26 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagno
         if (!validatePackageDocument(document, diags)) {
             return {
                 diagnostics: diags.all(),
+            }
+        }
+        let ncxId = document?.package?.[0].spine?.[0]?.['@toc']
+        if (ncxId) {
+            let item = pkg.items?.find(i => i['item']?.['@id'] === ncxId)
+            if (!item) {
+                diags.push({
+                    message: `ncx id not found: ${ncxId}`,
+                })
+            } else if (!item.content) {
+                diags.push({
+                    message: `ncx id content not found: ${ncxId}`,
+                })
+            } else if (typeof item.content !== 'string') {
+                diags.push({
+                    message: `ncx id content is not a string: ${ncxId}`,
+                })
+            } else {
+                let parsed: Unvalidated<NcxDocument> | undefined = parseXml(item.content, diags.scope('ncx'))
+                validateNcx(parsed, diags)
             }
         }
         validatedPackages.push({

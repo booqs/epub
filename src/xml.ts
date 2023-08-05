@@ -12,6 +12,8 @@ export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undef
         ignoreAttributes: false,
         attributeNamePrefix: '@',
         alwaysCreateTextNode: true,
+        parseAttributeValue: false,
+        parseTagValue: false,
         isArray(name, jpath, isLeafNode, isAttribute) {
             return !isAttribute
         },

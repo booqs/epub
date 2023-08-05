@@ -45,7 +45,7 @@ export async function checkAllEpubs(inputPath: string) {
         if (++count % 100 == 0) {
             console.log(`Checked ${count} files`)
         }
-        const diags = await getEpubDiagnostic2(file)
+        const diags = await getEpubDiagnostic(file)
         diagnostics.push(...diags)
         if (diags.length > 0) {
             console.log(`File: ${file}::::::::::`)
