@@ -1,7 +1,7 @@
 import { Diagnoser, diagnostics } from "./diagnostic"
 import { loadContainerDocument } from "./epub"
 import { FileProvider, getBasePath, loadXml } from "./file"
-import { ContainerDocument, ManifestItem, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, TocItem, Unvalidated } from "./model"
+import { ContainerDocument, ManifestItem, NavDocument, NavList, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, TocItem, Unvalidated } from "./model"
 import { getRootfiles, loadManifestItem } from "./package"
 import { parseXml } from "./xml"
 
@@ -101,10 +101,35 @@ function openPackage(document: Unvalidated<PackageDocument>, loadItem: ItemLoade
             return {
                 document: ncxDocument,
                 toc() {
-                    return ncxIterator(ncxDocument, diags)
+                    return ncxToc(ncxDocument, diags)
                 },
             }
-        }
+        },
+        async nav() {
+            let optNavDocument = await getNavToc(document, loadItem, diags)
+            if (optNavDocument == undefined) {
+                return undefined
+            }
+            let navDocument = optNavDocument
+            return {
+                document: navDocument,
+                toc() {
+                    return navToc(navDocument, diags)
+                },
+            }
+        },
+        async toc(): Promise<Toc | undefined> {
+            let optNavDocument = await getNavToc(document, loadItem, diags)
+            if (optNavDocument != undefined) {
+                return navToc(optNavDocument, diags)
+            }
+            let optNcxDocument = await getNcx(document, loadItem, diags)
+            if (optNcxDocument != undefined) {
+                return ncxToc(optNcxDocument, diags)
+            }
+            diags.push(`failed to find ncx or nav toc`)
+            return undefined
+        },
     }
 }
 
@@ -267,14 +292,18 @@ async function getNcx(document: Unvalidated<PackageDocument>, loadItem: ItemLoad
     return parsed
 }
 
-function* ncxIterator(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Generator<TocItem> {
+type Toc = {
+    title?: string,
+    items: Generator<TocItem>,
+}
+function ncxToc(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Toc | undefined {
     let navMap = ncx.ncx?.[0]?.navMap
     if (navMap == undefined || navMap.length == 0) {
         diags.push({
             message: `ncx is missing navMap`,
             data: ncx,
         })
-        return
+        return undefined
     } else if (navMap.length > 1) {
         diags.push({
             message: `ncx has multiple navMaps`,
@@ -287,9 +316,13 @@ function* ncxIterator(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Generato
             message: `ncx navMap is missing navPoints`,
             data: ncx,
         })
-        return
+        return undefined
     }
-    yield* navPointsIterator(navPoints, 0, diags)
+    let title = ncx.ncx?.[0]?.docTitle?.[0]?.text?.[0]?.["#text"]
+    return {
+        title,
+        items: navPointsIterator(navPoints, 0, diags),
+    }
 }
 
 function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, diags: Diagnoser): Generator<TocItem> {
@@ -318,6 +351,109 @@ function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, d
         let children = navPoint.navPoint
         if (children) {
             yield* navPointsIterator(children, level + 1, diags)
+        }
+    }
+}
+
+async function getNavToc(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
+    let manifestItems = document.package?.[0]?.manifest?.[0]?.item
+    if (manifestItems == undefined) {
+        diags.push({
+            message: `package is missing manifest items`,
+            data: document,
+        })
+        return undefined
+    }
+    let tocItem = manifestItems.find(i => i['@properties']?.includes('nav'))
+    if (tocItem == undefined) {
+        return undefined
+    }
+    let loaded = await loadItem(tocItem)
+    if (loaded == undefined) {
+        diags.push({
+            message: `failed to load nav item`,
+            data: tocItem,
+        })
+        return undefined
+    } else if (typeof loaded.content !== 'string') {
+        diags.push({
+            message: `nav item content is not a string`,
+            data: loaded,
+        })
+        return undefined
+    }
+    let parsed: Unvalidated<NavDocument> | undefined = parseXml(loaded.content, diags.scope('nav'))
+    if (parsed == undefined) {
+        diags.push({
+            message: `failed to parse nav item content`,
+            data: loaded,
+        })
+        return undefined
+    }
+    return parsed
+}
+
+function navToc(document: Unvalidated<NavDocument>, diags: Diagnoser): Toc | undefined {
+    let nav = document?.html?.[0]?.body?.[0]?.nav?.[0]
+    if (nav === undefined) {
+        diags.push({
+            message: `nav is missing`,
+            data: document,
+        })
+        return undefined
+    }
+    let headerElement = nav.h1 ?? nav.h2 ?? nav.h3 ?? nav.h4 ?? nav.h5 ?? nav.h6
+    let title = headerElement?.[0]?.["#text"]
+    let ol = nav.ol
+    if (ol === undefined) {
+        diags.push({
+            message: `nav is missing ol`,
+            data: nav,
+        })
+        return undefined
+    }
+    return {
+        title,
+        items: olIterator(ol, 0, diags),
+    }
+}
+
+function* olIterator(lis: Unvalidated<NavList>[], level: number, diags: Diagnoser): Generator<TocItem> {
+    for (let { li } of lis) {
+        if (li == undefined) {
+            continue
+        }
+        let anchor = li[0]?.a?.[0]
+        if (anchor == undefined) {
+            diags.push({
+                message: `nav ol li is missing anchor`,
+                data: li,
+            })
+            continue
+        }
+        let { '@href': href, '#text': label } = anchor
+        if (href == undefined) {
+            diags.push({
+                message: `nav ol li is missing href`,
+                data: li,
+            })
+            continue
+        }
+        if (label == undefined) {
+            diags.push({
+                message: `nav ol li is missing label`,
+                data: li,
+            })
+            continue
+        }
+        yield {
+            label,
+            href,
+            level,
+        }
+        let children = li[0].ol
+        if (children) {
+            yield* olIterator(children, level + 1, diags)
         }
     }
 }

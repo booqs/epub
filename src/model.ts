@@ -309,7 +309,10 @@ export type NavElement = {
 }
 export type NavList = {
     li: {
-        a?: [XmlText],
+        a?: [{
+            '@href': string,
+            '#text': string,
+        }],
         span?: [XmlText],
         ol?: [NavList],
     }[],
