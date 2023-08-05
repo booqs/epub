@@ -6,6 +6,161 @@ import {
 } from "./validator"
 import { parseXml } from "./xml"
 
+export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagnostic[], value?: FullEpub } {
+    let diags = diagnostics('epub validation')
+    let {
+        container, packages,
+        mimetype,
+        encryption,
+        signatures,
+        manifest,
+        metadata,
+        rights,
+    } = epub
+    if (!container) {
+        diags.push({
+            message: 'missing container document',
+        })
+        return { diagnostics: diags.all() }
+    }
+    if (!validateContainer(container, diags)) {
+        return {
+            diagnostics: diags.all(),
+        }
+    }
+    let validatedPackages: Package[] = []
+    for (let pkg of packages ?? []) {
+        let document = pkg.document
+        if (!validatePackageDocument(document, diags)) {
+            return {
+                diagnostics: diags.all(),
+            }
+        }
+        let ncxId = document?.package?.[0].spine?.[0]?.['@toc']
+        if (ncxId) {
+            let item = pkg.items?.find(i => i['item']?.['@id'] === ncxId)
+            if (!item) {
+                diags.push({
+                    message: `ncx id not found: ${ncxId}`,
+                })
+            } else if (!item.content) {
+                diags.push({
+                    message: `ncx id content not found: ${ncxId}`,
+                })
+            } else if (typeof item.content !== 'string') {
+                diags.push({
+                    message: `ncx id content is not a string: ${ncxId}`,
+                })
+            } else {
+                let parsed: Unvalidated<NcxDocument> | undefined = parseXml(item.content, diags.scope('ncx'))
+                validateNcx(parsed, diags)
+            }
+        }
+        let navItem = pkg.items?.find(i => i.item?.['@properties']?.includes('nav'))
+        if (navItem) {
+            if (!navItem.content) {
+                diags.push({
+                    message: `nav id content not found: ${navItem}`,
+                })
+            } else if (typeof navItem.content !== 'string') {
+                diags.push({
+                    message: `nav id content is not a string: ${navItem.item}`,
+                })
+            } else {
+                let parsed: Unvalidated<NavDocument> | undefined = parseXml(navItem.content, diags.scope('nav'))
+                validateNavDocument(parsed, diags)
+            }
+        }
+        validatedPackages.push({
+            ...pkg,
+            fullPath: pkg.fullPath as string,
+            document,
+            items: pkg.items as PackageItem[],
+        })
+    }
+    if (validatedPackages.length !== packages?.length) {
+        diags.push('failed to validate some packages')
+        return {
+            diagnostics: diags.all(),
+        }
+    }
+    if (mimetype !== 'application/epub+zip') {
+        diags.push({
+            message: `mimetype is not application/epub+zip: ${mimetype}`,
+        })
+        return {
+            diagnostics: diags.all(),
+        }
+    }
+    return {
+        diagnostics: diags.all(),
+        value: {
+            encryption: encryption as EncryptionDocument,
+            signatures: signatures as SignaturesDocument,
+            manifest: manifest as ManifestDocument,
+            metadata: metadata as MetadataDocument,
+            rights: rights as RightsDocument,
+            mimetype,
+            container,
+            packages: validatedPackages,
+        },
+    }
+}
+
+export function validateContainer(object: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): object is ContainerDocument {
+    diags = diags.scope('container')
+    let m = validateObject(object, CONTAINER)
+    diags.push(...m.map(m => ({
+        message: `failed validation: ${m}`,
+    })))
+    return m.length === 0
+}
+
+export function validatePackageDocument(object: Unvalidated<PackageDocument> | undefined, diags: Diagnoser): object is PackageDocument {
+    diags = diags.scope('package')
+    if (object === undefined) {
+        diags.push({
+            message: 'undefined package',
+        })
+        return false
+    }
+    let m = validateObject(object, PACKAGE)
+    diags.push(...m.map(m => ({
+        message: `failed validation: ${m}`,
+    })))
+    return m.length === 0
+}
+
+export function validateNcx(object: Unvalidated<NcxDocument> | undefined, diags: Diagnoser): object is NcxDocument {
+    diags = diags.scope('ncx')
+    if (object === undefined) {
+        diags.push({
+            message: 'undefined ncx',
+        })
+        return false
+    }
+    let m = validateObject(object, NCX)
+    diags.push(...m.map(m => ({
+        message: `failed validation: ${m}`,
+    })))
+    return m.length === 0
+}
+
+export function validateNavDocument(object: Unvalidated<NavDocument> | undefined, diags: Diagnoser): object is NavDocument {
+    diags = diags.scope('nav')
+    if (object === undefined) {
+        diags.push({
+            message: 'undefined nav',
+        })
+        return false
+    }
+    let m = validateObject(object, NAV_DOCUMENT)
+    diags.push(...m.map(m => ({
+        message: `failed validation: ${m}`,
+    })))
+    return m.length === 0
+}
+
 function field(validator: ObjectValidator['properties']) {
     return array(object(
         validator,
@@ -225,158 +380,3 @@ const NAV_DOCUMENT = object({
         }),
     }),
 })
-
-export function validateContainer(object: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): object is ContainerDocument {
-    diags = diags.scope('container')
-    let m = validateObject(object, CONTAINER)
-    diags.push(...m.map(m => ({
-        message: `failed validation: ${m}`,
-    })))
-    return m.length === 0
-}
-
-export function validatePackageDocument(object: Unvalidated<PackageDocument> | undefined, diags: Diagnoser): object is PackageDocument {
-    diags = diags.scope('package')
-    if (object === undefined) {
-        diags.push({
-            message: 'undefined package',
-        })
-        return false
-    }
-    let m = validateObject(object, PACKAGE)
-    diags.push(...m.map(m => ({
-        message: `failed validation: ${m}`,
-    })))
-    return m.length === 0
-}
-
-export function validateNcx(object: Unvalidated<NcxDocument> | undefined, diags: Diagnoser): object is NcxDocument {
-    diags = diags.scope('ncx')
-    if (object === undefined) {
-        diags.push({
-            message: 'undefined ncx',
-        })
-        return false
-    }
-    let m = validateObject(object, NCX)
-    diags.push(...m.map(m => ({
-        message: `failed validation: ${m}`,
-    })))
-    return m.length === 0
-}
-
-export function validateNavDocument(object: Unvalidated<NavDocument> | undefined, diags: Diagnoser): object is NavDocument {
-    diags = diags.scope('nav')
-    if (object === undefined) {
-        diags.push({
-            message: 'undefined nav',
-        })
-        return false
-    }
-    let m = validateObject(object, NAV_DOCUMENT)
-    diags.push(...m.map(m => ({
-        message: `failed validation: ${m}`,
-    })))
-    return m.length === 0
-}
-
-export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagnostic[], value?: FullEpub } {
-    let diags = diagnostics('epub validation')
-    let {
-        container, packages,
-        mimetype,
-        encryption,
-        signatures,
-        manifest,
-        metadata,
-        rights,
-    } = epub
-    if (!container) {
-        diags.push({
-            message: 'missing container document',
-        })
-        return { diagnostics: diags.all() }
-    }
-    if (!validateContainer(container, diags)) {
-        return {
-            diagnostics: diags.all(),
-        }
-    }
-    let validatedPackages: Package[] = []
-    for (let pkg of packages ?? []) {
-        let document = pkg.document
-        if (!validatePackageDocument(document, diags)) {
-            return {
-                diagnostics: diags.all(),
-            }
-        }
-        let ncxId = document?.package?.[0].spine?.[0]?.['@toc']
-        if (ncxId) {
-            let item = pkg.items?.find(i => i['item']?.['@id'] === ncxId)
-            if (!item) {
-                diags.push({
-                    message: `ncx id not found: ${ncxId}`,
-                })
-            } else if (!item.content) {
-                diags.push({
-                    message: `ncx id content not found: ${ncxId}`,
-                })
-            } else if (typeof item.content !== 'string') {
-                diags.push({
-                    message: `ncx id content is not a string: ${ncxId}`,
-                })
-            } else {
-                let parsed: Unvalidated<NcxDocument> | undefined = parseXml(item.content, diags.scope('ncx'))
-                validateNcx(parsed, diags)
-            }
-        }
-        let navItem = pkg.items?.find(i => i.item?.['@properties']?.includes('nav'))
-        if (navItem) {
-            if (!navItem.content) {
-                diags.push({
-                    message: `nav id content not found: ${navItem}`,
-                })
-            } else if (typeof navItem.content !== 'string') {
-                diags.push({
-                    message: `nav id content is not a string: ${navItem.item}`,
-                })
-            } else {
-                let parsed: Unvalidated<NavDocument> | undefined = parseXml(navItem.content, diags.scope('nav'))
-                validateNavDocument(parsed, diags)
-            }
-        }
-        validatedPackages.push({
-            ...pkg,
-            fullPath: pkg.fullPath as string,
-            document,
-            items: pkg.items as PackageItem[],
-        })
-    }
-    if (validatedPackages.length !== packages?.length) {
-        diags.push('failed to validate some packages')
-        return {
-            diagnostics: diags.all(),
-        }
-    }
-    if (mimetype !== 'application/epub+zip') {
-        diags.push({
-            message: `mimetype is not application/epub+zip: ${mimetype}`,
-        })
-        return {
-            diagnostics: diags.all(),
-        }
-    }
-    return {
-        diagnostics: diags.all(),
-        value: {
-            encryption: encryption as EncryptionDocument,
-            signatures: signatures as SignaturesDocument,
-            manifest: manifest as ManifestDocument,
-            metadata: metadata as MetadataDocument,
-            rights: rights as RightsDocument,
-            mimetype,
-            container,
-            packages: validatedPackages,
-        },
-    }
-}
