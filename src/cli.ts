@@ -42,7 +42,7 @@ export async function checkAllEpubs(inputPath: string) {
     const problems: string[] = []
     let count = 0
     for await (const file of files) {
-        if (++count % 100 == 0) {
+        if (++count % 1000 == 0) {
             console.log(`Checked ${count} files`)
         }
         const diags = await getEpubDiagnostic(file)

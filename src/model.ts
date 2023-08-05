@@ -259,11 +259,8 @@ export type NcxDocument = {
         docTitle?: [NcxText],
         docAuthor?: [NcxText],
         pageList?: [{
-            pageTarget: {
-                '@id': string,
-                '@value': string,
-                '@type': string,
-            }[],
+            navLabel: [NcxText],
+            pageTarget: PageTarget[],
         }],
         navList?: [{
             navLabel: [NcxText],
@@ -281,6 +278,14 @@ export type NavPoint = {
     navLabel: [NcxText],
     content: [NcxContent],
     navPoint?: NavPoint[],
+}
+export type PageTarget = {
+    '@id': string,
+    '@value': string,
+    '@type': string,
+    '@playOrder': NumberString,
+    navLabel: [NcxText],
+    content: [NcxContent],
 }
 export type NcxContent = {
     '@src': string,

@@ -1,7 +1,7 @@
 import { Diagnoser, diagnostics } from "./diagnostic"
 import { loadContainerDocument } from "./epub"
 import { FileProvider, getBasePath, loadXml } from "./file"
-import { ContainerDocument, ManifestItem, NavDocument, NavList, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, TocItem, Unvalidated } from "./model"
+import { ContainerDocument, ManifestItem, NavDocument, NavList, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated } from "./model"
 import { getRootfiles, loadManifestItem } from "./package"
 import { parseXml } from "./xml"
 
@@ -299,29 +299,53 @@ type Toc = {
 function ncxToc(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Toc | undefined {
     let navMap = ncx.ncx?.[0]?.navMap
     if (navMap == undefined || navMap.length == 0) {
-        diags.push({
-            message: `ncx is missing navMap`,
-            data: ncx,
-        })
-        return undefined
-    } else if (navMap.length > 1) {
-        diags.push({
-            message: `ncx has multiple navMaps`,
-            data: ncx,
-        })
-    }
-    let navPoints = navMap[0].navPoint
-    if (navPoints == undefined || navPoints.length == 0) {
-        diags.push({
-            message: `ncx navMap is missing navPoints`,
-            data: ncx,
-        })
-        return undefined
-    }
-    let title = ncx.ncx?.[0]?.docTitle?.[0]?.text?.[0]?.["#text"]
-    return {
-        title,
-        items: navPointsIterator(navPoints, 0, diags),
+        let pageLists = ncx.ncx?.[0]?.pageList
+        if (pageLists == undefined || pageLists.length == 0) {
+            diags.push({
+                message: `ncx is missing navMap and pageList`,
+                data: ncx,
+            })
+            return undefined
+        }
+        if (pageLists.length > 1) {
+            diags.push({
+                message: `ncx has multiple pageLists`,
+                data: ncx,
+            })
+        }
+        let pageList = pageLists[0]
+        if (!pageList.pageTarget?.length) {
+            diags.push({
+                message: `ncx pageList is missing pageTargets`,
+                data: ncx,
+            })
+            return undefined
+        }
+        let title = pageList.navLabel?.[0]?.text?.[0]?.["#text"]
+        return {
+            title,
+            items: pageListIterator(pageList.pageTarget, diags),
+        }
+    } else {
+        if (navMap.length > 1) {
+            diags.push({
+                message: `ncx has multiple navMaps`,
+                data: ncx,
+            })
+        }
+        let navPoints = navMap[0].navPoint
+        if (navPoints == undefined || navPoints.length == 0) {
+            diags.push({
+                message: `ncx navMap is missing navPoints`,
+                data: ncx,
+            })
+            return undefined
+        }
+        let title = ncx.ncx?.[0]?.docTitle?.[0]?.text?.[0]?.["#text"]
+        return {
+            title,
+            items: navPointsIterator(navPoints, 0, diags),
+        }
     }
 }
 
@@ -351,6 +375,32 @@ function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, d
         let children = navPoint.navPoint
         if (children) {
             yield* navPointsIterator(children, level + 1, diags)
+        }
+    }
+}
+
+function* pageListIterator(pageTargets: Unvalidated<PageTarget>[], diags: Diagnoser): Generator<TocItem> {
+    for (let pageTarget of pageTargets) {
+        let label = pageTarget.navLabel?.[0]?.text?.[0]?.["#text"]
+        if (label == undefined) {
+            diags.push({
+                message: `pageList pageTarget is missing label`,
+                data: pageTarget,
+            })
+            continue
+        }
+        let src = pageTarget.content?.[0]?.['@src']
+        if (src == undefined) {
+            diags.push({
+                message: `pageList pageTarget is missing content src`,
+                data: pageTarget,
+            })
+            continue
+        }
+        yield {
+            label,
+            href: src,
+            level: 0,
         }
     }
 }

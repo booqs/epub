@@ -242,17 +242,17 @@ const DC_ELEMENT = optCollection({
     '#text': optString(),
 })
 const METADATA = field({
-    'dc:identifier': collection({
+    'dc:identifier': optCollection({
         '@id': optString(),
         // TODO: make this required
         '#text': optString(),
     }),
-    'dc:title': collection({
+    'dc:title': optCollection({
         '@id': optString(),
         // TODO: make this required
         '#text': optString(),
     }),
-    'dc:language': collection({
+    'dc:language': optCollection({
         '@id': optString(),
         // TODO: make this required
         '#text': optString(),
@@ -338,9 +338,11 @@ const NCX = object({
         }),
         docTitle: optional(LABEL),
         docAuthor: optional(LABEL),
-        navMap: field({
+        navMap: oneOf(field({
             navPoint: NAV_POINT,
-        }),
+        }), field({
+            '#text': '',
+        })),
         pageList: optField({
             '@class': optString(),
             '@id': optString(),
