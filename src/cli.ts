@@ -1,12 +1,11 @@
 import fs from 'fs'
 import path from 'path'
-import JSZip from 'jszip'
 import { parseEpub } from './index'
 import util from 'util'
 import { Diagnostic } from './diagnostic'
-import { FileProvider } from './file'
 import { validateEpub } from './validate'
 import { openEpub } from './open'
+import { createFileProvider } from './mock'
 
 main()
 function main() {
@@ -65,7 +64,7 @@ function printDiagnostics(diagnostics: Diagnostic[]) {
 }
 
 async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
-    const fileProvider = createZipFileProvider(fs.promises.readFile(epubFilePath))
+    const fileProvider = createFileProvider(fs.promises.readFile(epubFilePath))
     let { diagnostics, value } = await parseEpub(fileProvider)
     if (value) {
         let { diagnostics: validationDiags } = validateEpub(value)
@@ -75,7 +74,7 @@ async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
 }
 
 async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
-    const fileProvider = createZipFileProvider(fs.promises.readFile(epubFilePath))
+    const fileProvider = createFileProvider(fs.promises.readFile(epubFilePath))
     let iterator = openEpub(fileProvider)
     for await (let pkg of iterator.packages()) {
         for (let item of pkg.items()) {
@@ -86,40 +85,6 @@ async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
         }
     }
     return iterator.diagnostics()
-}
-
-function createZipFileProvider(fileContent: Promise<Buffer>): FileProvider {
-    let zip = JSZip.loadAsync(fileContent)
-    return {
-        async readText(path, diags) {
-            try {
-                const file = (await zip).file(path)
-                if (!file) {
-                    return undefined
-                }
-                return file.async('text')
-            } catch (e) {
-                diags.push({
-                    message: `Error reading text ${path}: ${e}`,
-                })
-                return undefined
-            }
-        },
-        async readBinary(path, diags) {
-            try {
-                const file = (await zip).file(path)
-                if (!file) {
-                    return undefined
-                }
-                return file.async('nodebuffer')
-            } catch (e) {
-                diags.push({
-                    message: `Error reading binary ${path}: ${e}`,
-                })
-                return undefined
-            }
-        }
-    }
 }
 
 async function* getAllEpubFiles(directoryPath: string): AsyncGenerator<string> {
