@@ -1,10 +1,13 @@
 import { Diagnostic, Diagnoser, diagnostics } from "./diagnostic"
-import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated, knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties } from "./model"
+import {
+    ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, Package, PackageDocument,
+    PackageItem, RightsDocument, SignaturesDocument, Unvalidated,
+    knownGuideReferenceTypes, knownManifestItemMediaTypes, knownMetaProperties,
+} from "./model"
 import {
     ObjectValidator, array, custom, object, oneOf, optional,
     string, validateObject,
 } from "./validator"
-import { parseXml } from "./xml"
 
 export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagnostic[], value?: FullEpub } {
     let diags = diagnostics('epub validation')
@@ -36,46 +39,29 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagno
                 diagnostics: diags.all(),
             }
         }
-        let ncxId = document?.package?.[0].spine?.[0]?.['@toc']
-        if (ncxId) {
-            let item = pkg.items?.find(i => i['item']?.['@id'] === ncxId)
-            if (!item) {
-                diags.push({
-                    message: `ncx id not found: ${ncxId}`,
-                })
-            } else if (!item.content) {
-                diags.push({
-                    message: `ncx id content not found: ${ncxId}`,
-                })
-            } else if (typeof item.content !== 'string') {
-                diags.push({
-                    message: `ncx id content is not a string: ${ncxId}`,
-                })
-            } else {
-                let parsed: Unvalidated<NcxDocument> | undefined = parseXml(item.content, diags.scope('ncx'))
-                validateNcx(parsed, diags)
+        if (pkg.ncx) {
+            if (!validateNcxDocument(pkg.ncx, diags)) {
+                return {
+                    diagnostics: diags.all(),
+                }
             }
         }
-        let navItem = pkg.items?.find(i => i.item?.['@properties']?.includes('nav'))
-        if (navItem) {
-            if (!navItem.content) {
-                diags.push({
-                    message: `nav id content not found: ${navItem}`,
-                })
-            } else if (typeof navItem.content !== 'string') {
-                diags.push({
-                    message: `nav id content is not a string: ${navItem.item}`,
-                })
-            } else {
-                let parsed: Unvalidated<NavDocument> | undefined = parseXml(navItem.content, diags.scope('nav'))
-                validateNavDocument(parsed, diags)
+        if (pkg.nav) {
+            if (!validateNavDocument(pkg.nav, diags)) {
+                return {
+                    diagnostics: diags.all(),
+                }
             }
         }
+        let items = pkg.items as PackageItem[] ?? []
+        let spine = pkg.spine as PackageItem[] ?? []
         validatedPackages.push({
-            ...pkg,
             fullPath: pkg.fullPath as string,
             document,
-            items: pkg.items as PackageItem[],
+            spine,
+            items,
+            ncx: pkg.ncx,
+            nav: pkg.nav,
         })
     }
     if (validatedPackages.length !== packages?.length) {
@@ -131,7 +117,7 @@ export function validatePackageDocument(object: Unvalidated<PackageDocument> | u
     return m.length === 0
 }
 
-export function validateNcx(object: Unvalidated<NcxDocument> | undefined, diags: Diagnoser): object is NcxDocument {
+export function validateNcxDocument(object: Unvalidated<NcxDocument> | undefined, diags: Diagnoser): object is NcxDocument {
     diags = diags.scope('ncx')
     if (object === undefined) {
         diags.push({

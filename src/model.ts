@@ -78,6 +78,9 @@ export type Package = {
     fullPath: string,
     document: PackageDocument,
     items: PackageItem[],
+    spine: PackageItem[],
+    ncx?: NcxDocument,
+    nav?: NavDocument,
 }
 
 export type PackageDocument = {

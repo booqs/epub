@@ -1,6 +1,7 @@
 import { Diagnoser } from "./diagnostic"
 import { loadXml, FileProvider, getBasePath, pathRelativeTo } from "./file"
-import { ContainerDocument, ManifestItem, Package, PackageDocument, PackageItem, Unvalidated } from "./model"
+import { ContainerDocument, ManifestItem, NcxDocument, Package, PackageDocument, PackageItem, Unvalidated } from "./model"
+import { parseXml } from "./xml"
 
 export function getRootfiles(container: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): string[] {
     let rootfiles = container?.container?.[0]?.rootfiles?.[0]?.rootfile
@@ -38,17 +39,68 @@ export async function loadPackages(container: Unvalidated<ContainerDocument>, fi
 }
 
 async function loadPackage(fullPath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<Package> | undefined> {
-    let document = await loadXml(fileProvider, fullPath, diags)
+    let document: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
     if (document == undefined) {
         diags.push(`${fullPath} package is missing`)
         return undefined
     }
+    let result: Unvalidated<Package> = { fullPath, document }
     let items = await loadManifestItems(document, fullPath, fileProvider, diags)
-    return {
-        fullPath,
-        document,
-        items,
+    result.items = items
+    let spine: PackageItem[] = []
+    let spineElement = document?.package?.[0]?.spine?.[0]
+    let itemrefs = spineElement?.itemref
+    if (!itemrefs) {
+        diags.push({
+            message: `package is missing spine`,
+            data: document,
+        })
+    } else {
+        for (let itemref of itemrefs) {
+            let idref = itemref['@idref']
+            if (idref == undefined) {
+                diags.push(`spine itemref is missing @idref`)
+                continue
+            }
+            let item = items.find(i => i.item["@id"] == idref)
+            if (item == undefined) {
+                diags.push(`spine itemref @idref ${idref} does not match any manifest item`)
+                continue
+            }
+            spine.push(item)
+        }
+        result.spine = spine
+        let tocId = spineElement?.['@toc']
+        if (tocId) {
+            let ncx = items.find(i => i.item["@id"] == tocId)
+            if (!ncx) {
+                diags.push(`spine @toc ${tocId} does not match any manifest item`)
+            } else if (typeof ncx.content !== 'string') {
+                diags.push(`spine @toc ${tocId} is not a string`)
+            } else {
+                let parsed = parseXml(ncx.content, diags)
+                if (parsed == undefined) {
+                    diags.push(`failed to parse spine @toc ${tocId}`)
+                } else {
+                    result.ncx = parsed
+                }
+            }
+        }
     }
+    let nav = items.find(i => i.item["@properties"]?.includes("nav"))
+    if (nav) {
+        if (typeof nav.content !== 'string') {
+            diags.push(`nav is not a text file`)
+        } else {
+            let parsed = parseXml(nav.content, diags)
+            if (parsed == undefined) {
+                diags.push(`failed to parse nav`)
+            } else {
+                result.nav = parsed
+            }
+        }
+    }
+    return result
 }
 
 export async function loadManifestItems(document: Unvalidated<PackageDocument>, documentPath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<PackageItem[]> {
