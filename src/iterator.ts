@@ -1,8 +1,9 @@
 import { Diagnoser, diagnostics } from "./diagnostic"
 import { loadContainerDocument } from "./epub"
 import { FileProvider, getBasePath, loadXml } from "./file"
-import { ContainerDocument, ManifestItem, Opf2Meta, PackageDocument, PackageItem, Unvalidated } from "./model"
+import { ContainerDocument, ManifestItem, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, TocItem, Unvalidated } from "./model"
 import { getRootfiles, loadManifestItem } from "./package"
+import { parseXml } from "./xml"
 
 export function epubIterator(fileProvider: FileProvider) {
     let diags = diagnostics('epubIterator')
@@ -85,6 +86,19 @@ async function* containerIterator(container: Unvalidated<ContainerDocument>, fil
                 }
                 return loadItem(manifestItem)
             },
+            async ncx() {
+                let optNcxDocument = await getNcx(document, loadItem, diags)
+                if (optNcxDocument == undefined) {
+                    return undefined
+                }
+                let ncxDocument = optNcxDocument
+                return {
+                    document: ncxDocument,
+                    toc() {
+                        return ncxIterator(ncxDocument, diags)
+                    },
+                }
+            }
         }
     }
 }
@@ -218,4 +232,87 @@ function getPackageMetadata(document: Unvalidated<PackageDocument>, diags: Diagn
         }
     }
     return result
+}
+
+async function getNcx(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
+    let ncxId = document?.package?.[0].spine?.[0]?.['@toc']
+    if (ncxId == undefined) {
+        return undefined
+    }
+    let item = document?.package?.[0].manifest?.[0]?.item?.find(i => i['@id'] === ncxId)
+    if (item == undefined) {
+        diags.push(`failed to find manifest ncx item for id: ${ncxId}`)
+        return undefined
+    }
+    let ncxItem = await loadItem(item)
+    if (ncxItem == undefined) {
+        diags.push(`failed to load ncx item for id: ${ncxId}`)
+        return undefined
+    }
+    let ncxContent = ncxItem.content
+    if (typeof ncxContent !== 'string') {
+        diags.push(`ncx content is not a string`)
+        return undefined
+    }
+    let parsed: Unvalidated<NcxDocument> | undefined = parseXml(ncxContent, diags.scope('ncx'))
+    if (parsed == undefined) {
+        diags.push(`failed to parse ncx content`)
+        return undefined
+    }
+    return parsed
+}
+
+function* ncxIterator(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Generator<TocItem> {
+    let navMap = ncx.ncx?.[0]?.navMap
+    if (navMap == undefined || navMap.length == 0) {
+        diags.push({
+            message: `ncx is missing navMap`,
+            data: ncx,
+        })
+        return
+    } else if (navMap.length > 1) {
+        diags.push({
+            message: `ncx has multiple navMaps`,
+            data: ncx,
+        })
+    }
+    let navPoints = navMap[0].navPoint
+    if (navPoints == undefined || navPoints.length == 0) {
+        diags.push({
+            message: `ncx navMap is missing navPoints`,
+            data: ncx,
+        })
+        return
+    }
+    yield* navPointsIterator(navPoints, 0, diags)
+}
+
+function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, diags: Diagnoser): Generator<TocItem> {
+    for (let navPoint of navPoints) {
+        let label = navPoint.navLabel?.[0]?.text?.[0]?.["#text"]
+        if (label == undefined) {
+            diags.push({
+                message: `navPoints navPoint is missing label`,
+                data: navPoint,
+            })
+            continue
+        }
+        let src = navPoint.content?.[0]?.['@src']
+        if (src == undefined) {
+            diags.push({
+                message: `navPoints navPoint is missing content src`,
+                data: navPoint,
+            })
+            continue
+        }
+        yield {
+            label,
+            href: src,
+            level,
+        }
+        let children = navPoint.navPoint
+        if (children) {
+            yield* navPointsIterator(children, level + 1, diags)
+        }
+    }
 }

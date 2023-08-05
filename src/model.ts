@@ -314,3 +314,9 @@ export type NavList = {
         ol?: [NavList],
     }[],
 }
+
+export type TocItem = {
+    label: string,
+    href: string,
+    level: number,
+}
