@@ -1,4 +1,4 @@
-import { Diagnostic, Diagnoser, diagnostics } from "./diagnostic"
+import { Diagnostic, Diagnoser, diagnoser } from "./diagnostic"
 import {
     ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, Package, PackageDocument,
     PackageItem, RightsDocument, SignaturesDocument, Unvalidated,
@@ -10,7 +10,7 @@ import {
 } from "./validator"
 
 export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser): FullEpub | undefined {
-    let diags = optDiags?.scope('epub validation') ?? diagnostics('epub validation')
+    let diags = optDiags?.scope('epub validation') ?? diagnoser('epub validation')
     let {
         container, packages,
         mimetype,

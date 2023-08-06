@@ -1,4 +1,4 @@
-import { Diagnoser, diagnostics } from "./diagnostic"
+import { Diagnoser, diagnoser } from "./diagnostic"
 import { loadContainerDocument } from "./parse"
 import { FileProvider, getBasePath, loadXml } from "./file"
 import { ContainerDocument, ManifestItem, NavDocument, NavList, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated } from "./model"
@@ -6,7 +6,7 @@ import { getRootfiles, loadManifestItem } from "./package"
 import { parseXml } from "./xml"
 
 export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
-    let diags = optDiags?.scope('open epub') ?? diagnostics('open epub')
+    let diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
     let _container: Promise<Unvalidated<ContainerDocument> | undefined> | undefined
     function getContainer() {
         if (_container == undefined) {

@@ -20,7 +20,7 @@ export function diagnosticToString(diagnostic: Diagnostic): string {
     return typeof diagnostic === 'string' ? diagnostic : JSON.stringify(diagnostic)
 }
 
-export function diagnostics(topScope: DiagnosticScope): Diagnoser {
+export function diagnoser(topScope: DiagnosticScope): Diagnoser {
     function isDiagnostics(diag: InternalDiagnostic): diag is Diagnoser {
         return typeof (diag as Diagnoser).all === 'function'
     }
@@ -54,7 +54,7 @@ export function diagnostics(topScope: DiagnosticScope): Diagnoser {
             internal.push(...diags)
         },
         scope(scope: DiagnosticScope) {
-            let scoped = diagnostics(scope)
+            let scoped = diagnoser(scope)
             internal.push(scoped)
             return scoped
         },

@@ -1,5 +1,5 @@
 import { Xml } from "./model"
-import { Diagnoser, diagnostics } from "./diagnostic"
+import { Diagnoser, diagnoser } from "./diagnostic"
 import { parseXml } from "./xml"
 
 export type FileProvider = {
@@ -36,7 +36,7 @@ export async function loadXml(fileProvider: FileProvider, path: string, diags: D
 }
 
 export async function loadOptionalXml(fileProvider: FileProvider, path: string, diags: Diagnoser): Promise<Xml | undefined> {
-    let xmlFile = await fileProvider.readText(path, diagnostics('ignore'))
+    let xmlFile = await fileProvider.readText(path, diagnoser('ignore'))
     if (xmlFile == undefined) {
         return undefined
     }

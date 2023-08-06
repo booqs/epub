@@ -1,10 +1,10 @@
 import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, RightsDocument, SignaturesDocument, Unvalidated } from "./model"
-import { Diagnoser, diagnostics } from "./diagnostic"
+import { Diagnoser, diagnoser } from "./diagnostic"
 import { FileProvider, loadOptionalXml, loadXml } from "./file"
 import { loadPackages } from "./package"
 
 export async function parseEpub(fileProvider: FileProvider, diags?: Diagnoser): Promise<Unvalidated<FullEpub> | undefined> {
-    diags = diags ?? diagnostics('parseEpub')
+    diags = diags ?? diagnoser('parseEpub')
     let mimetype = await loadMimetype(fileProvider, diags)
     let container = await loadContainerDocument(fileProvider, diags)
     if (container == undefined) {
