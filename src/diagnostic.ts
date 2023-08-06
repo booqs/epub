@@ -4,7 +4,7 @@ export type Diagnostic = {
     severity?: DiagnosticSeverity,
     scope?: DiagnosticScope[],
 }
-export type DiagnosticSeverity = 'error' | 'warning' | 'critical'
+export type DiagnosticSeverity = 'error' | 'warning' | 'critical' | 'info'
 export type DiagnosticScope = string | object
 export type Diagnoser = {
     push(...diagnostic: Array<Diagnostic | string>): void,

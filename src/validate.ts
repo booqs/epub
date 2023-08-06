@@ -9,8 +9,8 @@ import {
     string, validateObject,
 } from "./validator"
 
-export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagnostic[], value?: FullEpub } {
-    let diags = diagnostics('epub validation')
+export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser): FullEpub | undefined {
+    let diags = optDiags?.scope('epub validation') ?? diagnostics('epub validation')
     let {
         container, packages,
         mimetype,
@@ -24,33 +24,25 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagno
         diags.push({
             message: 'missing container document',
         })
-        return { diagnostics: diags.all() }
+        return undefined
     }
     if (!validateContainer(container, diags)) {
-        return {
-            diagnostics: diags.all(),
-        }
+        return undefined
     }
     let validatedPackages: Package[] = []
     for (let pkg of packages ?? []) {
         let document = pkg.document
         if (!validatePackageDocument(document, diags)) {
-            return {
-                diagnostics: diags.all(),
-            }
+            return undefined
         }
         if (pkg.ncx) {
             if (!validateNcxDocument(pkg.ncx, diags)) {
-                return {
-                    diagnostics: diags.all(),
-                }
+                return undefined
             }
         }
         if (pkg.nav) {
             if (!validateNavDocument(pkg.nav, diags)) {
-                return {
-                    diagnostics: diags.all(),
-                }
+                return undefined
             }
         }
         let items = pkg.items as PackageItem[] ?? []
@@ -66,30 +58,23 @@ export function validateEpub(epub: Unvalidated<FullEpub>): { diagnostics: Diagno
     }
     if (validatedPackages.length !== packages?.length) {
         diags.push('failed to validate some packages')
-        return {
-            diagnostics: diags.all(),
-        }
+        return undefined
     }
     if (mimetype !== 'application/epub+zip') {
         diags.push({
             message: `mimetype is not application/epub+zip: ${mimetype}`,
         })
-        return {
-            diagnostics: diags.all(),
-        }
+        return undefined
     }
     return {
-        diagnostics: diags.all(),
-        value: {
-            encryption: encryption as EncryptionDocument,
-            signatures: signatures as SignaturesDocument,
-            manifest: manifest as ManifestDocument,
-            metadata: metadata as MetadataDocument,
-            rights: rights as RightsDocument,
-            mimetype,
-            container,
-            packages: validatedPackages,
-        },
+        encryption: encryption as EncryptionDocument,
+        signatures: signatures as SignaturesDocument,
+        manifest: manifest as ManifestDocument,
+        metadata: metadata as MetadataDocument,
+        rights: rights as RightsDocument,
+        mimetype,
+        container,
+        packages: validatedPackages,
     }
 }
 

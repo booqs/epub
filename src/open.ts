@@ -5,8 +5,8 @@ import { ContainerDocument, ManifestItem, NavDocument, NavList, NavPoint, NcxDoc
 import { getRootfiles, loadManifestItem } from "./package"
 import { parseXml } from "./xml"
 
-export function openEpub(fileProvider: FileProvider) {
-    let diags = diagnostics('epubIterator')
+export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
+    let diags = optDiags?.scope('open epub') ?? diagnostics('open epub')
     let _container: Promise<Unvalidated<ContainerDocument> | undefined> | undefined
     function getContainer() {
         if (_container == undefined) {

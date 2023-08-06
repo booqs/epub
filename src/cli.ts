@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { parseEpub } from './index'
 import util from 'util'
-import { Diagnostic } from './diagnostic'
+import { Diagnostic, diagnostics } from './diagnostic'
 import { validateEpub } from './validate'
 import { openEpub } from './open'
 import { createFileProvider } from './mock'
@@ -65,12 +65,12 @@ function printDiagnostics(diagnostics: Diagnostic[]) {
 
 async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
     const fileProvider = createFileProvider(fs.promises.readFile(epubFilePath))
-    let { diagnostics, value } = await parseEpub(fileProvider)
+    let diags = diagnostics(epubFilePath)
+    let value = await parseEpub(fileProvider, diags)
     if (value) {
-        let { diagnostics: validationDiags } = validateEpub(value)
-        diagnostics.push(...validationDiags)
+        validateEpub(value, diags)
     }
-    return diagnostics
+    return diags.all()
 }
 
 async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {

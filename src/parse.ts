@@ -1,20 +1,14 @@
 import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, RightsDocument, SignaturesDocument, Unvalidated } from "./model"
-import { Diagnostic, Diagnoser, diagnostics } from "./diagnostic"
+import { Diagnoser, diagnostics } from "./diagnostic"
 import { FileProvider, loadOptionalXml, loadXml } from "./file"
 import { loadPackages } from "./package"
 
-export async function parseEpub(fileProvider: FileProvider): Promise<{
-    value?: Unvalidated<FullEpub>,
-    diagnostics: Diagnostic[],
-}> {
-    const diags = diagnostics('parseEpub')
+export async function parseEpub(fileProvider: FileProvider, diags?: Diagnoser): Promise<Unvalidated<FullEpub> | undefined> {
+    diags = diags ?? diagnostics('parseEpub')
     let mimetype = await loadMimetype(fileProvider, diags)
     let container = await loadContainerDocument(fileProvider, diags)
     if (container == undefined) {
-        return {
-            value: undefined,
-            diagnostics: diags.all(),
-        }
+        return undefined
     }
     let packages = await loadPackages(container, fileProvider, diags)
     let encryption = await loadEncryptionDocument(fileProvider, diags)
@@ -23,17 +17,14 @@ export async function parseEpub(fileProvider: FileProvider): Promise<{
     let rights = await loadRightsDocument(fileProvider, diags)
     let signatures = await loadSignaturesDocument(fileProvider, diags)
     return {
-        value: {
-            mimetype,
-            container,
-            packages,
-            encryption,
-            manifest,
-            metadata,
-            rights,
-            signatures,
-        },
-        diagnostics: diags.all(),
+        mimetype,
+        container,
+        packages,
+        encryption,
+        manifest,
+        metadata,
+        rights,
+        signatures,
     }
 }
 
