@@ -125,7 +125,7 @@ export type Opf2MetadataKey = typeof opf2MetadataKeys[number]
 export type Opf2Metadata = {
     [key in Opf2MetadataKey]?: {
         '#text': string,
-    };
+    }[];
 }
 export const optionalDcMetadataKeys = [
     'dc:contributor', 'dc:coverage', 'dc:creator', 'dc:date', 'dc:description',
