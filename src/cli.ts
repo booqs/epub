@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
-import { parseEpub } from './index'
-import util from 'util'
+import { FullEpub, parseEpub, Unvalidated } from './index'
+import util, { inspect } from 'util'
 import { Diagnostic, diagnoser } from './diagnostic'
 import { validateEpub } from './validate'
 import { openEpub } from './open'
@@ -9,8 +9,28 @@ import { createFileProvider } from './mock'
 
 main()
 function main() {
-    const inputPath = process.argv[2] ?? './epubs'
-    logTime('checkAllEpubs', () => checkAllEpubs(inputPath))
+    const options = parseArgv(process.argv)
+    logTime('checkAllEpubs', () => checkAllEpubs(options))
+}
+
+type Options = {
+    inputPath?: string,
+    show?: string[],
+}
+function parseArgv(args: string[]) {
+    const options: Options = {}
+    const [_, __, ...rest] = args
+    for (const arg of rest) {
+        if (arg.startsWith('--')) {
+            if (options.show === undefined) {
+                options.show = []
+            }
+            options.show.push(arg.substring('--'.length))
+        } else {
+            options.inputPath = arg
+        }
+    }
+    return options
 }
 
 async function logTime(name: string, action: () => Promise<void>) {
@@ -26,36 +46,49 @@ export async function checkAllEpubsParallel(inputPath: string) {
     for await (const file of filesGenerator) {
         files.push(file)
     }
-    let promises = files.map(getEpubDiagnostic)
+    let promises = files.map(processEpub)
     let results = await Promise.all(promises)
-    for (let diags of results) {
+    for (let { diags } of results) {
         if (diags.length > 0) {
             printDiagnostics(diags)
         }
     }
 }
 
-export async function checkAllEpubs(inputPath: string) {
+export async function checkAllEpubs(options: Options) {
     let diagnostics: Diagnostic[] = []
-    const files = getAllEpubFiles(inputPath)
+    const files = getAllEpubFiles(options.inputPath ?? './epubs')
     const problems: string[] = []
     let count = 0
     for await (const file of files) {
         if (++count % 1000 == 0) {
             console.log(`Checked ${count} files`)
         }
-        const diags = await getEpubDiagnostic(file)
+        const { diags, epub } = await processEpub(file)
         diagnostics.push(...diags)
-        if (diags.length > 0) {
+        if (options.show || diags.length > 0) {
             console.log(`File: ${file}::::::::::`)
+        }
+
+        if (diags.length > 0) {
             problems.push(file)
             printDiagnostics(diags)
         }
-    }
-    console.log(`Checked ${count} files`)
-    if (problems.length > 0) {
-        console.log('Problems::::::::::')
-        console.log(problems.join('\n'))
+        if (options.show) {
+            for (let packages of epub?.packages ?? []) {
+                for (let pkg of packages.document?.package ?? []) {
+                    for (let show of options.show) {
+                        console.log(`${show}::::::::::`)
+                        console.log(inspect((pkg as any)[show], false, null, true))
+                    }
+                }
+            }
+        }
+        console.log(`Checked ${count} files`)
+        if (problems.length > 0) {
+            console.log('Problems::::::::::')
+            console.log(problems.join('\n'))
+        }
     }
 }
 
@@ -63,14 +96,20 @@ function printDiagnostics(diagnostics: Diagnostic[]) {
     console.log(util.inspect(diagnostics, false, null, true))
 }
 
-async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
+async function processEpub(epubFilePath: string): Promise<{
+    epub: Unvalidated<FullEpub> | undefined,
+    diags: Diagnostic[],
+}> {
     const fileProvider = createFileProvider(fs.promises.readFile(epubFilePath))
     let diags = diagnoser(epubFilePath)
     let value = await parseEpub(fileProvider, diags)
     if (value) {
         validateEpub(value, diags)
     }
-    return diags.all()
+    return {
+        epub: value,
+        diags: diags.all(),
+    }
 }
 
 async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
