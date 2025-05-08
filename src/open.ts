@@ -48,10 +48,11 @@ async function* packageIterator(container: Unvalidated<ContainerDocument>, fileP
             diags.push(`${fullPath} package is missing`)
             continue
         }
-        let base = getBasePath(fullPath)
-        const loadItem: ItemLoader = item => loadManifestItem(item, base, fileProvider, diags)
+        let basePath = getBasePath(fullPath)
+        const loadItem: ItemLoader = item => loadManifestItem(item, basePath, fileProvider, diags)
         yield {
             fullPath,
+            basePath,
             ...openPackage(document, loadItem, diags),
         }
     }
