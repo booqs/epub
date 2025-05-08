@@ -4,7 +4,12 @@ export type Unvalidated<T> = T extends string ? string
     : T extends Array<infer U> ? Unvalidated<U>[]
     : T extends object ? {
         [P in keyof T]?: Unvalidated<T[P]>;
-    } : T;
+    }
+    : T extends string ? string
+    : T extends number ? number
+    : T extends boolean ? boolean
+    : T
+    ;
 
 export type Attributes = {
     [Attr in `@${string}`]?: string;
