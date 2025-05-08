@@ -209,30 +209,32 @@ const DC_ELEMENT = optCollection({
     '@id': optString(),
     '@dir': optional(DIR),
     '@xml:lang': optString(),
-    // TODO: make this required
-    '#text': optString(),
+    '#text': string(),
 })
 const METADATA = field({
     'dc:identifier': optCollection({
         '@id': optString(),
-        // TODO: make this required
-        '#text': optString(),
+        '#text': string(),
     }),
     'dc:title': optCollection({
         '@id': optString(),
-        // TODO: make this required
-        '#text': optString(),
+        '#text': string(),
     }),
     'dc:language': optCollection({
         '@id': optString(),
-        // TODO: make this required
-        '#text': optString(),
+        '#text': string(),
+    }),
+    'dc:creator': optCollection({
+        '@id': optString(),
+        '@xml:lang': optString(),
+        '@opf:file-as': optString(),
+        '@opf:role': optString(),
+        '#text': string(),
     }),
     'dc:subject': DC_ELEMENT,
     'dc:description': DC_ELEMENT,
     'dc:publisher': DC_ELEMENT,
     'dc:contributor': DC_ELEMENT,
-    'dc:creator': DC_ELEMENT,
     'dc:date': DC_ELEMENT,
     'dc:source': DC_ELEMENT,
     'dc:rights': DC_ELEMENT,

@@ -127,14 +127,30 @@ export type Opf2Metadata = {
         '#text': string,
     }[];
 }
-export const optionalDcMetadataKeys = [
+export const optionalDcMetadataGenericKeys = [
     'dc:contributor', 'dc:coverage', 'dc:creator', 'dc:date', 'dc:description',
     'dc:format', 'dc:publisher', 'dc:relation', 'dc:rights', 'dc:source',
     'dc:subject', 'dc:type',
 ] as const
-export type OptionalDcMetadataKey = typeof optionalDcMetadataKeys[number]
+export type OptionalDcMetadataGenericKey = typeof optionalDcMetadataGenericKeys[number]
+export type OptionalDcMetadataGenericAttrs = {
+    '@id'?: string,
+    '@dir'?: ContentDirection,
+    '@xml:lang'?: string,
+    '#text'?: string,
+}
+export type OptionalDcMetadataGeneric = {
+    [key in OptionalDcMetadataGenericKey]: OptionalDcMetadataGenericAttrs[]
+}
+export type OptionalDcMetadat = {
+    'dc:creator'?: Array<OptionalDcMetadataGenericAttrs | {
+        '@opf:file-as'?: string,
+        '@opf:role'?: MARCRole,
+    }>,
+}
+export type OptionalDcMetadataKey = keyof OptionalDcMetadata
 export type OptionalDcMetadata = {
-    [key in OptionalDcMetadataKey]?: Array<{
+    [key in OptionalDcMetadataGenericKey]?: Array<{
         '@id'?: string,
         '@dir'?: ContentDirection,
         '@xml:lang'?: string,
@@ -159,6 +175,7 @@ export type Opf2Meta = {
     '@name': string,
     '@content': string,
 }
+export type MARCRole = string
 
 export type PackageManifest = {
     '@id'?: string,
