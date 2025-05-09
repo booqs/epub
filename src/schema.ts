@@ -45,6 +45,15 @@ const dcOptionalElement = z.object({
     '#text': z.string(),
 }).strict()
 
+const dcCreatorOrContributor = z.object({
+    '@id': id.optional(),
+    '@dir': dir.optional(),
+    '@xml:lang': xmlLang.optional(),
+    '@opf:role': z.string().optional(), // Note: epub2
+    '@opf:file-as': z.string().optional(), // Note: epub2
+    '#text': z.string(),
+}).strict()
+
 const meta = z.object({
     '@property': properties, // TODO: check this in conformance with the spec as defined by D.3 Meta properties vocabulary
     '@refines': refines.optional(),
@@ -54,7 +63,7 @@ const meta = z.object({
     '#text': z.string(),
 }).strict()
 
-// TODO: move to epub2
+// Note: epub2
 const opf2meta = z.object({
     '@name': z.string(),
     '@content': z.string(),
@@ -62,7 +71,8 @@ const opf2meta = z.object({
 
 const metadata = z.object({
     'meta': z.array(z.union([
-        meta, opf2meta,
+        meta,
+        opf2meta, // Note: epub2
     ])).nonempty(),
     'dc:identifier': z.array(z.object({
         '@id': id.optional(),
@@ -78,18 +88,18 @@ const metadata = z.object({
         '@id': id.optional(),
         '#text': z.string(),
     }).strict()).nonempty(),
-    'dc:contributor': dcOptionalElement.optional(),
-    'dc:coverage': dcOptionalElement.optional(),
+    'dc:contributor': z.array(dcCreatorOrContributor).optional(),
+    'dc:coverage': z.array(dcCreatorOrContributor).optional(),
     'dc:creator': z.array(dcOptionalElement).optional(),
-    'dc:date': dcOptionalElement.optional(),
-    'dc:description': dcOptionalElement.optional(),
-    'dc:format': dcOptionalElement.optional(),
-    'dc:publisher': dcOptionalElement.optional(),
-    'dc:relation': dcOptionalElement.optional(),
-    'dc:rights': dcOptionalElement.optional(),
-    'dc:source': dcOptionalElement.optional(),
-    'dc:subject': dcOptionalElement.optional(),
-    'dc:type': dcOptionalElement.optional(),
+    'dc:date': z.array(dcOptionalElement).optional(),
+    'dc:description': z.array(dcOptionalElement).optional(),
+    'dc:format': z.array(dcOptionalElement).optional(),
+    'dc:publisher': z.array(dcOptionalElement).optional(),
+    'dc:relation': z.array(dcOptionalElement).optional(),
+    'dc:rights': z.array(dcOptionalElement).optional(),
+    'dc:source': z.array(dcOptionalElement).optional(),
+    'dc:subject': z.array(dcOptionalElement).optional(),
+    'dc:type': z.array(dcOptionalElement).optional(),
 }).strict()
 
 // Elemetns/Manifest
@@ -122,7 +132,6 @@ const spine = z.object({
 
 // Elements/Guide
 
-// TODO: move to epub2
 const knownReferenceTypes = z.enum([
     'cover', 'title-page', 'toc', 'index', 'glossary',
     'acknowledgements', 'bibliography', 'colophon', 'copyright-page',
@@ -178,7 +187,10 @@ const bindings = z.object({
 export const packageDocument = z.object({
     package: z.tuple([z.object({
         '@unique-identifier': z.string(),
-        '@version': z.literal('3.0'),
+        '@version': z.enum([
+            '3.0',
+            '2.0', // Note: epub2
+        ]),
         '@dir': dir.optional(),
         '@id': id.optional(),
         '@prefix': z.string().optional(),
