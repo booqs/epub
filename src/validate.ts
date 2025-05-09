@@ -83,7 +83,7 @@ export const validateNcxDocument = makeValidator(ncxDocument, 'ncx')
 type DocumentType = ContainerDocument | PackageDocument | NavDocument | NcxDocument
 function makeValidator<T extends DocumentType>(zodValidator: z.ZodType<T>, scope: string) {
     return function validate(object: Unvalidated<DocumentType> | undefined, diags: Diagnoser): object is T {
-        diags.scope(scope)
+        diags = diags.scope(scope)
         const result = zodValidator.safeParse(object)
         if (result.success) {
             return true
