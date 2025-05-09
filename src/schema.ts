@@ -40,15 +40,15 @@ const idref = z.string() //.brand<'idref'>() // TODO: check validity
 
 // Note: epub2
 const epub2DcExtra = {
-    '@opf:scheme': z.string().optional(),
-    '@opf:event': z.string().optional(),
-    '@xsi:type': z.string().optional(),
+    '@scheme': z.string().optional(),
+    '@event': z.string().optional(),
+    '@type': z.string().optional(),
 }
 
 const dcOptionalElement = z.object({
     '@id': id.optional(),
     '@dir': dir.optional(),
-    '@xml:lang': xmlLang.optional(),
+    '@lang': xmlLang.optional(),
     '#text': z.string(),
     ...epub2DcExtra,
 }).strict()
@@ -56,9 +56,9 @@ const dcOptionalElement = z.object({
 const dcCreatorOrContributor = z.object({
     '@id': id.optional(),
     '@dir': dir.optional(),
-    '@xml:lang': xmlLang.optional(),
-    '@opf:role': z.string().optional(), // Note: epub2
-    '@opf:file-as': z.string().optional(), // Note: epub2
+    '@lang': xmlLang.optional(),
+    '@role': z.string().optional(), // Note: epub2
+    '@file-as': z.string().optional(), // Note: epub2
     '#text': z.string().optional(), // Note: traum optional
     ...epub2DcExtra,
 }).strict()
@@ -76,7 +76,7 @@ export const meta = z.object({
     '@refines': refines.optional(),
     '@id': id.optional(),
     '@dir': dir.optional(),
-    '@xml:lang': xmlLang.optional(),
+    '@lang': xmlLang.optional(),
     '#text': z.string(),
 }).strict()
 
@@ -86,69 +86,48 @@ export const opf2meta = z.object({
     '@content': z.string(),
 }).strict()
 
-// Note: epub2
-const epub2metaTag = z.tuple([z.object({
-    '#text': z.string(),
-}).strict()])
-
 const metadata = z.object({
     // Note: epub2
-    '@xmlns:dc': z.string().optional(),
-    '@xmlns:dcterms': z.string().optional(),
-    '@xmlns:xsi': z.string().optional(),
-    '@xmlns:opf': z.string().optional(),
+    '@dc': z.string().optional(),
+    '@dcterms': z.string().optional(),
+    '@xsi': z.string().optional(),
+    '@opf': z.string().optional(),
     // -----------
     // Note: traum
-    '@xmlns:calibre': z.string().optional(),
+    '@calibre': z.string().optional(),
     'meta': z.array(z.union([
         meta,
         opf2meta, // Note: epub2
     ])).optional(), // Note: epub2 makes it optional
-    'dc:identifier': z.array(z.object({
+    'identifier': z.array(z.object({
         '@id': id.optional(),
         '#text': z.string().optional(), // Note: traum optional
         ...epub2DcExtra,
     }).strict()).nonempty(),
-    'dc:title': z.array(z.object({
+    'title': z.array(z.object({
         '@id': id.optional(),
         '@dir': dir.optional(),
         '@xml:lang': xmlLang.optional(),
         '#text': z.string(),
         ...epub2DcExtra,
     }).strict()).nonempty(),
-    'dc:language': z.array(z.object({
+    'language': z.array(z.object({
         '@id': id.optional(),
         '#text': z.string().optional(), // Note: traum optional
         ...epub2DcExtra,
     }).strict()).optional(), // Note: epub2 optional
-    'dc:contributor': z.array(dcCreatorOrContributor).optional(),
-    'dc:creator': z.array(dcCreatorOrContributor).optional(),
-    'dc:coverage': z.array(dcOptionalElement).optional(),
-    'dc:date': z.array(dcOptionalElement).optional(),
-    'dc:description': z.array(dcOptionalElement).optional(),
-    'dc:format': z.array(dcOptionalElement).optional(),
-    'dc:publisher': z.array(dcOptionalElement).optional(),
-    'dc:relation': z.array(dcOptionalElement).optional(),
-    'dc:rights': z.array(dcOptionalElement).optional(),
-    'dc:source': z.array(dcOptionalElement).optional(),
-    'dc:subject': z.array(dcOptionalElement).optional(),
-    'dc:type': z.array(dcOptionalElement).optional(),
-    // Note: epub2
-    'title': epub2metaTag.optional(),
-    'creator': epub2metaTag.optional(),
-    'subject': epub2metaTag.optional(),
-    'description': epub2metaTag.optional(),
-    'publisher': epub2metaTag.optional(),
-    'contributor': epub2metaTag.optional(),
-    'date': epub2metaTag.optional(),
-    'type': epub2metaTag.optional(),
-    'format': epub2metaTag.optional(),
-    'identifier': epub2metaTag.optional(),
-    'source': epub2metaTag.optional(),
-    'language': epub2metaTag.optional(),
-    'relation': epub2metaTag.optional(),
-    'coverage': epub2metaTag.optional(),
-    'rights': epub2metaTag.optional(),
+    'contributor': z.array(dcCreatorOrContributor).optional(),
+    'creator': z.array(dcCreatorOrContributor).optional(),
+    'coverage': z.array(dcOptionalElement).optional(),
+    'date': z.array(dcOptionalElement).optional(),
+    'description': z.array(dcOptionalElement).optional(),
+    'format': z.array(dcOptionalElement).optional(),
+    'publisher': z.array(dcOptionalElement).optional(),
+    'relation': z.array(dcOptionalElement).optional(),
+    'rights': z.array(dcOptionalElement).optional(),
+    'source': z.array(dcOptionalElement).optional(),
+    'subject': z.array(dcOptionalElement).optional(),
+    'type': z.array(dcOptionalElement).optional(),
 }).strict()
 
 // Elemetns/Manifest
@@ -201,7 +180,7 @@ const collectionBaseShape = {
     '@role': z.string(),
     '@id': id.optional(),
     '@dir': dir.optional(),
-    '@xml:lang': xmlLang.optional(),
+    '@lang': xmlLang.optional(),
     'metadata': z.tuple([metadata]).optional(),
     'link': z.array(z.object({
         '@href': href,
@@ -242,7 +221,7 @@ export const packageDocument = z.object({
         '@dir': dir.optional(),
         '@id': id.optional(),
         '@prefix': z.string().optional(),
-        '@xml:lang': xmlLang.optional(),
+        '@lang': xmlLang.optional(),
         'metadata': z.tuple([metadata]),
         'manifest': z.tuple([manifest]),
         'spine': z.tuple([spine]),
@@ -250,11 +229,10 @@ export const packageDocument = z.object({
         'guide': z.tuple([guide]).optional(),
         'bindings': z.tuple([bindings]).optional(),
         // Note: epub2
-        '@xmlns:opf': z.string().optional(),
-        '@xmlns:dc': z.string().optional(),
-        '@xmlns:dcterms': z.string().optional(),
-        '@xmlns:xsi': z.string().optional(),
-        '@xmlns': z.string().optional(),
+        '@opf': z.string().optional(),
+        '@dc': z.string().optional(),
+        '@dcterms': z.string().optional(),
+        '@xsi': z.string().optional(),
     }).strict()]),
 }).strict()
 
@@ -292,7 +270,7 @@ const ol = z.object({
     li: z.array(li).nonempty(),
 }).strict()
 const nav = z.object({
-    '@epub:type': z.enum(['toc', 'page-list', 'landmarks']).optional(),
+    '@type': z.enum(['toc', 'page-list', 'landmarks']).optional(),
     'h1': z.tuple([htmlPhrasingContent]).optional(),
     'h2': z.tuple([htmlPhrasingContent]).optional(),
     'h3': z.tuple([htmlPhrasingContent]).optional(),
@@ -343,8 +321,7 @@ const ncxContent = z.tuple([z.object({
 export const ncxDocument = z.object({
     'ncx': z.tuple([z.object({
         '@version': z.literal('2005-1'),
-        '@xmlns': z.literal('http://www.daisy.org/z3986/2005/ncx/'),
-        '@xml:lang': xmlLang.optional(),
+        '@lang': xmlLang.optional(),
         'head': z.tuple([z.object({
             'meta': z.array(opf2meta).nonempty(),
         }).strict()]).optional(),
@@ -385,12 +362,10 @@ export const ncxDocument = z.object({
 
 // NOTE: this is a path-relative-scheme-less-URL string
 const relativePath = z.string() //.brand<'relativePath'>()
-const ocfNamespace = z.literal('urn:oasis:names:tc:opendocument:xmlns:container')
 
 export const containerDocument = z.object({
     container: z.tuple([z.object({
         '@version': z.literal('1.0'),
-        '@xmlns': ocfNamespace,
         'rootfiles': z.tuple([z.object({
             'rootfile': z.array(z.object({
                 '@full-path': relativePath,
@@ -413,7 +388,6 @@ const encryptedData = z.any()
 
 export const encryptionDocument = z.object({
     'encryption': z.tuple([z.object({
-        '@xmlns': ocfNamespace,
         'enc.EncryptedKey': z.array(encryptedKey).nonempty(),
         'enc.EncryptedData': z.array(encryptedData).nonempty(),
     }).strict()]),
@@ -423,7 +397,6 @@ export const encryptionDocument = z.object({
 const signature = z.any()
 export const signaturesDocument = z.object({
     'signatures': z.tuple([z.object({
-        '@xmlns': ocfNamespace,
         'Signature': z.array(signature).nonempty(),
     }).strict()]),
 }).strict()

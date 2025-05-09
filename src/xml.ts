@@ -8,7 +8,7 @@ export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undef
         return undefined
     }
     const parser = new XMLParser({
-        // removeNSPrefix: true,
+        removeNSPrefix: true,
         ignoreDeclaration: true,
         ignoreAttributes: false,
         attributeNamePrefix: '@',
