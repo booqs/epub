@@ -90,7 +90,7 @@ export async function checkAllEpubsParallel(options: Options) {
     } finally {
         if (problems.length > 0) {
             console.log('Problems::::::::::')
-            console.log(problems.join('\n'))
+            console.log(problems.join(', '))
         }
     }
 }
@@ -101,36 +101,41 @@ export async function checkAllEpubs(options: Options) {
     const problems: string[] = []
     let count = 0
     for await (const file of files) {
-        if ((++count % 1000) === 0) {
-            console.log(`Checked ${count} files`)
-            if (problems.length > 0) {
-                console.log(`Total problems: ${problems.length}`)
+        try {
+            if ((++count % 1000) === 0) {
+                console.log(`Checked ${count} files`)
+                if (problems.length > 0) {
+                    console.log(`Total problems: ${problems.length}`)
+                }
             }
-        }
-        const { diags, epub } = await processEpub(file)
-        diagnostics.push(...diags)
-        if (options.show || diags.length > 0) {
-            console.log(`File: ${file}::::::::::`)
-        }
-
-        if (options.show) {
-            for (let path of options.show) {
-                console.log(`${path}::::::::::`)
-                console.log(inspect(getValue(epub, path), false, null, true))
+            const { diags, epub } = await processEpub(file)
+            diagnostics.push(...diags)
+            if (options.show || diags.length > 0) {
+                console.log(`File: ${file}::::::::::`)
             }
-        }
 
-        if (diags.length > 0) {
+            if (options.show) {
+                for (let path of options.show) {
+                    console.log(`${path}::::::::::`)
+                    console.log(inspect(getValue(epub, path), false, null, true))
+                }
+            }
+
+            if (diags.length > 0) {
+                problems.push(file)
+                printDiagnostics(diags)
+                if (options.stopOnError) {
+                    return
+                }
+            }
+        } catch (e) {
+            console.error(`Unhandled exception processing file ${file}: ${e}`)
             problems.push(file)
-            printDiagnostics(diags)
-            if (options.stopOnError) {
-                return
-            }
         }
     }
     if (problems.length > 0) {
         console.log('Problems::::::::::')
-        console.log(problems.join('\n'))
+        console.log(problems.join(', '))
     }
 }
 
