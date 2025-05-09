@@ -212,7 +212,7 @@ const collectionBaseShape = {
     }).strict()).optional(),
 }
 const _collectionBase = z.object(collectionBaseShape).strict()
-type Collection = z.infer<typeof collectionBase> & {
+type Collection = z.infer<typeof _collectionBase> & {
     collection?: Collection[]
 }
 const collection = z.object({
@@ -273,7 +273,7 @@ const liBaseShape = {
     }).strict()]).optional(),
 }
 const _liBase = z.object(liBaseShape).strict()
-type Li = z.infer<typeof liBase> & {
+type Li = z.infer<typeof _liBase> & {
     ol?: z.infer<typeof ol>[]
 }
 const li = z.lazy((): z.ZodType<Li> =>
@@ -327,7 +327,7 @@ const navPointBaseShape = {
     }).strict()]),
 }
 const _navPointBase = z.object(navPointBaseShape).strict()
-export type NavPoint = z.infer<typeof navPointBase> & {
+export type NavPoint = z.infer<typeof _navPointBase> & {
     navPoint?: NavPoint[],
 }
 const navPoint = z.object({
