@@ -27,7 +27,7 @@ function parseArgv(args: string[]) {
     const options: Options = {}
     const [_, __, ...rest] = args
     for (const arg of rest) {
-        if (arg === '--quick-stop') {
+        if (arg === '--quick-fail') {
             options.stopOnError = true
         } else if (arg === '--parallel') {
             options.parallel = true
