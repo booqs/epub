@@ -8,7 +8,7 @@ export type FileProvider = {
 }
 
 export function getBasePath(path: string): string {
-    let index = path.lastIndexOf('/')
+    const index = path.lastIndexOf('/')
     if (index == -1) {
         return ''
     } else {
@@ -21,12 +21,12 @@ export function pathRelativeTo(base: string, path: string): string {
 }
 
 export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnoser): Promise<Xml | undefined> {
-    let xmlFile = await fileProvider.readText(path, diags)
+    const xmlFile = await fileProvider.readText(path, diags)
     if (xmlFile == undefined) {
         diags.push(`${path} is missing`)
         return undefined
     }
-    let xml = parseXml(xmlFile, diags.scope(`xml at ${path}`))
+    const xml = parseXml(xmlFile, diags.scope(`xml at ${path}`))
     if (xml == undefined) {
         diags.push(`Failed to parse xml: ${path}`)
         return undefined
@@ -36,11 +36,11 @@ export async function loadXml(fileProvider: FileProvider, path: string, diags: D
 }
 
 export async function loadOptionalXml(fileProvider: FileProvider, path: string, diags: Diagnoser): Promise<Xml | undefined> {
-    let xmlFile = await fileProvider.readText(path, diagnoser('ignore'))
+    const xmlFile = await fileProvider.readText(path, diagnoser('ignore'))
     if (xmlFile == undefined) {
         return undefined
     }
-    let xml = parseXml(xmlFile, diags)
+    const xml = parseXml(xmlFile, diags)
     if (xml == undefined) {
         diags.push(`Failed to parse xml: ${path}`)
         return undefined

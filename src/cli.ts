@@ -57,7 +57,7 @@ export async function checkAllEpubsParallel(options: Options) {
     const problems: string[] = []
     try {
         for await (const files of makeBatchesAsync(filesGenerator, options.parallel ?? 1)) {
-            let promises = files
+            const promises = files
                 .map(processEpub)
                 .map(p => p.then(({ diags, epub, epubFilePath }) => {
                     if ((++count % 1000) === 0) {
@@ -70,7 +70,7 @@ export async function checkAllEpubsParallel(options: Options) {
                         console.log(`File: ${epubFilePath}::::::::::`)
                     }
                     if (options.show) {
-                        for (let path of options.show) {
+                        for (const path of options.show) {
                             console.log(`${path}::::::::::`)
                             console.log(inspect(getValue(epub, path), false, null, true))
                         }
@@ -96,7 +96,7 @@ export async function checkAllEpubsParallel(options: Options) {
 }
 
 export async function checkAllEpubs(options: Options) {
-    let diagnostics: Diagnostic[] = []
+    const diagnostics: Diagnostic[] = []
     const files = getAllEpubFiles(options.inputPath ?? './epubs')
     const problems: string[] = []
     let count = 0
@@ -115,7 +115,7 @@ export async function checkAllEpubs(options: Options) {
             }
 
             if (options.show) {
-                for (let path of options.show) {
+                for (const path of options.show) {
                     console.log(`${path}::::::::::`)
                     console.log(inspect(getValue(epub, path), false, null, true))
                 }
@@ -149,8 +149,8 @@ async function processEpub(epubFilePath: string): Promise<{
     diags: Diagnostic[],
 }> {
     const fileProvider = createFileProvider(fs.promises.readFile(epubFilePath))
-    let diags = diagnoser(epubFilePath)
-    let value = await parseEpub(fileProvider, diags)
+    const diags = diagnoser(epubFilePath)
+    const value = await parseEpub(fileProvider, diags)
     if (value) {
         validateEpub(value, diags)
     }
@@ -163,12 +163,12 @@ async function processEpub(epubFilePath: string): Promise<{
 
 async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
     const fileProvider = createFileProvider(fs.promises.readFile(epubFilePath))
-    let iterator = openEpub(fileProvider)
-    for await (let pkg of iterator.packages()) {
-        for (let item of pkg.items()) {
+    const iterator = openEpub(fileProvider)
+    for await (const pkg of iterator.packages()) {
+        for (const item of pkg.items()) {
             item.load()
         }
-        for (let item of pkg.spine()) {
+        for (const item of pkg.spine()) {
             item.item
         }
     }

@@ -2,7 +2,7 @@ import JSZip from 'jszip'
 import { FileProvider } from "./file"
 
 export function createFileProvider(fileContent: Promise<Buffer>): FileProvider {
-    let zip = JSZip.loadAsync(fileContent)
+    const zip = JSZip.loadAsync(fileContent)
     return {
         async readText(path, diags) {
             try {

@@ -25,7 +25,7 @@ export function diagnoser(topScope: DiagnosticScope): Diagnoser {
         return typeof (diag as Diagnoser).all === 'function'
     }
     type InternalDiagnostic = Diagnostic | string | Diagnoser
-    let internal: InternalDiagnostic[] = []
+    const internal: InternalDiagnostic[] = []
     function flatten(diags: InternalDiagnostic[], scope: DiagnosticScope[]): Diagnostic[] {
         return diags.map((diag): Diagnostic[] => {
             if (isDiagnostics(diag)) {
@@ -54,7 +54,7 @@ export function diagnoser(topScope: DiagnosticScope): Diagnoser {
             internal.push(...diags)
         },
         scope(scope: DiagnosticScope) {
-            let scoped = diagnoser(scope)
+            const scoped = diagnoser(scope)
             internal.push(scoped)
             return scoped
         },

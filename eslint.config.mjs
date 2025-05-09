@@ -21,11 +21,9 @@ export default [
     rules: {
       // ESLint core rules
       'semi': ['error', 'never'],
-      'prefer-const': 'off',
-      'no-unused-vars': 'off',
+      'prefer-const': 'error',
       
       // TypeScript rules
-      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },

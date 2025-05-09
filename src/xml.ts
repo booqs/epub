@@ -7,7 +7,7 @@ export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undef
         diags.push('XML is undefined')
         return undefined
     }
-    let parser = new XMLParser({
+    const parser = new XMLParser({
         // removeNSPrefix: true,
         ignoreDeclaration: true,
         ignoreAttributes: false,
@@ -20,7 +20,7 @@ export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undef
         },
     })
     try {
-        let fast: Xml = parser.parse(xml)
+        const fast: Xml = parser.parse(xml)
         return fast
     } catch (e) {
         diags.push({
@@ -39,7 +39,7 @@ export function parseHtml(xml: string | undefined, diags: Diagnoser): Html | und
         diags.push('HTML is undefined')
         return undefined
     }
-    let parser = new XMLParser({
+    const parser = new XMLParser({
         ignoreDeclaration: true,
         ignoreAttributes: false,
         preserveOrder: true,
@@ -55,7 +55,7 @@ export function parseHtml(xml: string | undefined, diags: Diagnoser): Html | und
         },
     })
     try {
-        let { html } = parser.parse(xml)
+        const { html } = parser.parse(xml)
         if (html == undefined) {
             return undefined
         }

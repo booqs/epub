@@ -7,8 +7,8 @@ import {
 import { containerDocument, navDocument, ncxDocument, packageDocument } from "./schema"
 
 export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser): FullEpub | undefined {
-    let diags = optDiags?.scope('epub validation') ?? diagnoser('epub validation')
-    let {
+    const diags = optDiags?.scope('epub validation') ?? diagnoser('epub validation')
+    const {
         container, packages,
         mimetype,
         encryption,
@@ -26,9 +26,9 @@ export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser):
     if (!validateContainerDocument(container, diags)) {
         return undefined
     }
-    let validatedPackages: Package[] = []
-    for (let pkg of packages ?? []) {
-        let document = pkg.document
+    const validatedPackages: Package[] = []
+    for (const pkg of packages ?? []) {
+        const document = pkg.document
         if (!validatePackageDocument(document, diags)) {
             return undefined
         }
@@ -42,8 +42,8 @@ export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser):
                 return undefined
             }
         }
-        let items = pkg.items as PackageItem[] ?? []
-        let spine = pkg.spine as PackageItem[] ?? []
+        const items = pkg.items as PackageItem[] ?? []
+        const spine = pkg.spine as PackageItem[] ?? []
         validatedPackages.push({
             fullPath: pkg.fullPath as string,
             document,

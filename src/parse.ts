@@ -5,17 +5,17 @@ import { loadPackages } from "./package"
 
 export async function parseEpub(fileProvider: FileProvider, diags?: Diagnoser): Promise<Unvalidated<FullEpub> | undefined> {
     diags = diags ?? diagnoser('parseEpub')
-    let mimetype = await loadMimetype(fileProvider, diags)
-    let container = await loadContainerDocument(fileProvider, diags)
+    const mimetype = await loadMimetype(fileProvider, diags)
+    const container = await loadContainerDocument(fileProvider, diags)
     if (container == undefined) {
         return undefined
     }
-    let packages = await loadPackages(container, fileProvider, diags)
-    let encryption = await loadEncryptionDocument(fileProvider, diags)
-    let manifest = await loadManifestDocument(fileProvider, diags)
-    let metadata = await loadMetadataDocument(fileProvider, diags)
-    let rights = await loadRightsDocument(fileProvider, diags)
-    let signatures = await loadSignaturesDocument(fileProvider, diags)
+    const packages = await loadPackages(container, fileProvider, diags)
+    const encryption = await loadEncryptionDocument(fileProvider, diags)
+    const manifest = await loadManifestDocument(fileProvider, diags)
+    const metadata = await loadMetadataDocument(fileProvider, diags)
+    const rights = await loadRightsDocument(fileProvider, diags)
+    const signatures = await loadSignaturesDocument(fileProvider, diags)
     return {
         mimetype,
         container,
@@ -53,7 +53,7 @@ export async function loadSignaturesDocument(fileProvider: FileProvider, diags: 
 }
 
 export async function loadMimetype(fileProvider: FileProvider, diags: Diagnoser): Promise<string | undefined> {
-    let mimetype = fileProvider.readText('mimetype', diags)
+    const mimetype = fileProvider.readText('mimetype', diags)
     if (!mimetype) {
         diags.push({
             message: 'missing mimetype',
