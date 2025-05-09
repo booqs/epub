@@ -10,19 +10,19 @@ const dir = z.enum(['ltr', 'rtl', 'auto'])
 
 // A valid URL string [url] that references a resource.
 // Allowed on: item and link.
-const href = z.string().brand<'href'>()
+const href = z.string() //.brand<'href'>()
 
 // The ID [xml] of the element, which MUST be unique within the document scope.
 // Allowed on: collection, Dublin Core elements, item, itemref, link, manifest, meta, package, and spine.
-const id = z.string().brand<'id'>()
+const id = z.string() //.brand<'id'>()
 
 // A media type [rfc2046] that specifies the type and format of the referenced resource.
 // Allowed on: item and link.
-const mediaType = z.string().brand<'media-type'>()
+const mediaType = z.string() //.brand<'media-type'>()
 
 // A space-separated list of property values
 // Allowed on: item, itemref, and link
-const properties = z.string().brand<'properties'>()
+const properties = z.string() //.brand<'properties'>()
 
 // Establishes an association between the current expression and the element or resource identified by its value.
 // Allowed on: link and meta.
@@ -30,9 +30,9 @@ const refines = z.string()
 
 // Specifies the language of the textual content and attribute values of the carrying element and its descendants, as defined in section 2.12 Language Identification of [xml]. The value of each xml:lang attribute MUST be a well-formed language tag [bcp47].
 // Allowed on: collection, Dublin Core elements, meta, and package.
-const xmlLang = z.string().brand<'xml:lang'>()
+const xmlLang = z.string() //.brand<'xml:lang'>()
 
-const idref = z.string().brand<'idref'>() // TODO: check validity
+const idref = z.string() //.brand<'idref'>() // TODO: check validity
 
 // Elements
 
@@ -54,8 +54,16 @@ const dcCreatorOrContributor = z.object({
     '#text': z.string(),
 }).strict()
 
-const meta = z.object({
-    '@property': properties, // TODO: check this in conformance with the spec as defined by D.3 Meta properties vocabulary
+export const knownMetaProperties = [
+    'alternate-script', 'authority', 'belongs-to-collection', 'collection-type', 'display-seq', 'file-as', 'group-position', 'identifier-type', 'role', 'source-of', 'term', 'title-type',
+] as const
+const otherMetaPropery = z.string() as z.ZodType<`${string}:${string}`>
+
+export const meta = z.object({
+    '@property': z.union([
+        z.enum(knownMetaProperties),
+        otherMetaPropery,
+    ]), // TODO: check this in conformance with the spec as defined by D.3 Meta properties vocabulary
     '@refines': refines.optional(),
     '@id': id.optional(),
     '@dir': dir.optional(),
@@ -64,7 +72,7 @@ const meta = z.object({
 }).strict()
 
 // Note: epub2
-const opf2meta = z.object({
+export const opf2meta = z.object({
     '@name': z.string(),
     '@content': z.string(),
 }).strict()
@@ -132,17 +140,20 @@ const spine = z.object({
 
 // Elements/Guide
 
-const knownReferenceTypes = z.enum([
+export const knownGuideReferenceTypes = [
     'cover', 'title-page', 'toc', 'index', 'glossary',
     'acknowledgements', 'bibliography', 'colophon', 'copyright-page',
     'dedication', 'epigraph', 'foreword', 'loi', 'lot', 'notes',
     'preface', 'text',
-])
-const otherReferenceType = z.string().startsWith('other.') as z.ZodType<`other.${string}`>
+] as const
+const otherGuideReferenceType = z.string().startsWith('other.') as z.ZodType<`other.${string}`>
 const guide = z.object({
     'reference': z.array(z.object({
         '@href': href,
-        '@type': z.union([knownReferenceTypes, otherReferenceType]),
+        '@type': z.union([
+            z.enum(knownGuideReferenceTypes),
+            otherGuideReferenceType,
+        ]),
         '@title': z.string().optional(),
     }).strict()).nonempty(),
 })
@@ -258,42 +269,72 @@ export const navDocument = z.object({
 
 //===== NCX document =====//
 
+const ncxText = z.tuple([z.object({
+    'text': z.array(z.object({
+        '#text': z.string(),
+    }).strict()).nonempty(),
+}).strict()])
+
+const navPointBaseShape = {
+    '@id': id,
+    '@playOrder': idref,
+    'navLabel': ncxText,
+    'content': z.tuple([z.object({
+        '@src': href,
+    }).strict()]),
+}
+const navPointBase = z.object(navPointBaseShape).strict()
+export type NavPoint = z.infer<typeof navPointBase> & {
+    navPoint?: NavPoint[],
+}
+const navPoint = z.object({
+    ...navPointBaseShape,
+    'navPoint': z.array(z.lazy(() => navPoint)).optional(),
+}).strict() as z.ZodType<NavPoint>
+
+const ncxContent = z.tuple([z.object({
+    '@src': href,
+}).strict()])
+
 // TODO: verify this is okay
 export const ncxDocument = z.object({
     'ncx': z.tuple([z.object({
         '@version': z.literal('2005-1'),
         '@xmlns': z.literal('http://www.daisy.org/z3986/2005/ncx/'),
+        '@xml:lang': xmlLang.optional(),
         'head': z.tuple([z.object({
-            'meta': z.array(z.object({
-                '@name': z.string(),
-                '@content': z.string(),
-            }).strict()).nonempty(),
+            'meta': z.array(opf2meta).nonempty(),
         }).strict()]).optional(),
-        'docTitle': z.tuple([z.object({
-            'text': z.array(z.string()).nonempty(),
-        }).strict()]).optional(),
-        'docAuthor': z.tuple([z.object({
-            'text': z.array(z.string()).nonempty(),
-        }).strict()]).optional(),
+        'docTitle': ncxText.optional(),
+        'docAuthor': ncxText.optional(),
         'navMap': z.tuple([z.object({
-            'navPoint': z.array(z.object({
-                '@id': id,
-                '@playOrder': idref,
-                'navLabel': z.tuple([z.object({
-                    'text': z.array(z.string()).nonempty(),
-                }).strict()]).optional(),
-                'content': z.tuple([z.object({
-                    '@src': href,
-                }).strict()]).optional(),
-            }).strict()).nonempty(),
+            'navPoint': z.array(navPoint).nonempty(),
         }).strict()]),
+        'pageList': z.tuple([z.object({
+            'navLabel': ncxText,
+            'pageTarget': z.array(z.object({
+                '@id': id,
+                '@value': z.string(),
+                '@playOrder': z.string(), // should be number
+                navLabel: ncxText,
+                content: ncxContent,
+            }).strict())
+        }).strict()]).optional(),
+        navList: z.tuple([z.object({
+            'navLabel': ncxText,
+            'navTarget': z.array(z.object({
+                '@id': id,
+                'navLabel': ncxText,
+                'content': ncxContent,
+            }).strict())
+        }).strict()]).optional(),
     }).strict()]),
 }).strict()
 
 //===== OCF container =====//
 
 // NOTE: this is a path-relative-scheme-less-URL string
-const relativePath = z.string().brand<'relativePath'>()
+const relativePath = z.string() //.brand<'relativePath'>()
 const ocfNamespace = z.literal('urn:oasis:names:tc:opendocument:xmlns:container')
 
 export const containerDocument = z.object({
@@ -337,8 +378,9 @@ export const signaturesDocument = z.object({
     }).strict()]),
 }).strict()
 
-// Epub 3 spec does not define the manifest or metadata documents
+// Epub 3 spec does not define the manifest, metadata or rights documents
 export const manifestDocument = z.object({})
 export const metadataDocument = z.object({})
+export const rightsDocument = z.object({})
 
 export const mimetypeDocument = z.literal('application/epub+zip')

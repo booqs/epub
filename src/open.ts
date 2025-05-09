@@ -1,7 +1,9 @@
 import { Diagnoser, diagnoser } from "./diagnostic"
 import { loadContainerDocument } from "./parse"
 import { FileProvider, getBasePath, loadXml } from "./file"
-import { ContainerDocument, ManifestItem, NavDocument, NavList, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated } from "./model"
+import {
+    ContainerDocument, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated,
+} from "./model"
 import { getRootfiles, loadManifestItem } from "./package"
 import { parseXml } from "./xml"
 
@@ -469,7 +471,7 @@ function navToc(document: Unvalidated<NavDocument>, diags: Diagnoser): Toc | und
     }
 }
 
-function* olIterator(lis: Unvalidated<NavList>[], level: number, diags: Diagnoser): Generator<TocItem> {
+function* olIterator(lis: Unvalidated<NavOl>[], level: number, diags: Diagnoser): Generator<TocItem> {
     for (let { li } of lis) {
         if (li == undefined) {
             continue
