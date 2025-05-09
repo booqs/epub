@@ -118,7 +118,7 @@ const metadata = z.object({
         '@id': id.optional(),
         '#text': z.string(),
         ...epub2DcExtra,
-    }).strict()).nonempty(),
+    }).strict()).optional(), // Note: epub2 optional
     'dc:contributor': z.array(dcCreatorOrContributor).optional(),
     'dc:creator': z.array(dcCreatorOrContributor).optional(),
     'dc:coverage': z.array(dcOptionalElement).optional(),
