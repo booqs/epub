@@ -353,7 +353,8 @@ export const ncxDocument = z.object({
         'docTitle': ncxText.optional(),
         'docAuthor': ncxText.optional(),
         'navMap': z.tuple([z.object({
-            'navPoint': z.array(navPoint).nonempty(),
+            'navPoint': z.array(navPoint).optional(),
+            '#text': z.string().optional(), // Note: pg13249-image.epub
         }).strict()]),
         'pageList': z.tuple([z.object({
             // Note: speculative

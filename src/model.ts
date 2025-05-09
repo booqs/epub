@@ -77,7 +77,7 @@ export type NcxDocument = z.infer<typeof ncxDocument>
 
 export type NavOl = NavDocument['html'][number]['body'][number]['nav'][number]['ol'][number]
 
-export type NavPoint = NcxDocument['ncx'][number]['navMap'][number]['navPoint'][number]
+export type NavPoint = NonNullable<NcxDocument['ncx'][number]['navMap'][number]['navPoint']>[number]
 export type PageTarget = NonNullable<NcxDocument['ncx'][number]['pageList']>[number]['pageTarget'][number]
 
 export type Opf2Meta = z.infer<typeof opf2meta>
