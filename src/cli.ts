@@ -71,21 +71,17 @@ export async function checkAllEpubsParallel(options: Options) {
                 if (options.show || diags.length > 0) {
                     console.log(`File: ${epubFilePath}::::::::::`)
                 }
+                if (options.show) {
+                    for (let path of options.show) {
+                        console.log(`${path}::::::::::`)
+                        console.log(inspect(getValue(epub, path), false, null, true))
+                    }
+                }
                 if (diags.length > 0) {
                     problems.push(epubFilePath)
                     printDiagnostics(diags)
                     if (options.stopOnError) {
                         throw new Error('exit')
-                    }
-                }
-                if (options.show) {
-                    for (let packages of epub?.packages ?? []) {
-                        for (let pkg of packages.document?.package ?? []) {
-                            for (let show of options.show) {
-                                console.log(`${show}::::::::::`)
-                                console.log(inspect((pkg as any)[show], false, null, true))
-                            }
-                        }
                     }
                 }
             }))
@@ -117,21 +113,18 @@ export async function checkAllEpubs(options: Options) {
             console.log(`File: ${file}::::::::::`)
         }
 
+        if (options.show) {
+            for (let path of options.show) {
+                console.log(`${path}::::::::::`)
+                console.log(inspect(getValue(epub, path), false, null, true))
+            }
+        }
+
         if (diags.length > 0) {
             problems.push(file)
             printDiagnostics(diags)
             if (options.stopOnError) {
                 return
-            }
-        }
-        if (options.show) {
-            for (let packages of epub?.packages ?? []) {
-                for (let pkg of packages.document?.package ?? []) {
-                    for (let show of options.show) {
-                        console.log(`${show}::::::::::`)
-                        console.log(inspect((pkg as any)[show], false, null, true))
-                    }
-                }
             }
         }
     }
@@ -188,4 +181,16 @@ async function* getAllEpubFiles(directoryPath: string): AsyncGenerator<string> {
     } else if (path.extname(directoryPath) === '.epub') {
         yield directoryPath
     }
+}
+
+function getValue(object: any, path: string) {
+    const parts = path.split('.')
+    let value = object
+    for (const part of parts) {
+        if (value === undefined) {
+            return undefined
+        }
+        value = value[part]
+    }
+    return value
 }
