@@ -37,3 +37,5 @@ dist/
 
 # Epub examples
 epubs/**/*
+
+**/.claude/settings.local.json
