@@ -21,7 +21,7 @@ type Options = {
     inputPath?: string,
     show?: string[],
     stopOnError?: boolean,
-    parallel?: boolean,
+    parallel?: number,
 }
 function parseArgv(args: string[]) {
     const options: Options = {}
@@ -29,8 +29,9 @@ function parseArgv(args: string[]) {
     for (const arg of rest) {
         if (arg === '--quick-fail') {
             options.stopOnError = true
-        } else if (arg === '--parallel') {
-            options.parallel = true
+        } else if (arg.startsWith('--parallel')) {
+            const batchSize = parseInt(arg.substring('--parallel='.length))
+            options.parallel = !batchSize || isNaN(batchSize) ? 1 : batchSize
         } else if (arg.startsWith('--')) {
             if (options.show === undefined) {
                 options.show = []
@@ -52,46 +53,45 @@ async function logTime(name: string, action: () => Promise<void>) {
 
 export async function checkAllEpubsParallel(options: Options) {
     const filesGenerator = getAllEpubFiles(options.inputPath ?? './epubs')
-    let files: string[] = []
-    for await (const file of filesGenerator) {
-        files.push(file)
-    }
+    let count = 0
+    const problems: string[] = []
     try {
-        let count = 0
-        const problems: string[] = []
-        let promises = files
-            .map(processEpub)
-            .map(p => p.then(({ diags, epub, epubFilePath }) => {
-                if ((++count % 1000) === 0) {
-                    console.log(`Checked ${count} files`)
-                    if (problems.length > 0) {
-                        console.log(`Total problems: ${problems.length}`)
+        for await (const files of makeBatchesAsync(filesGenerator, options.parallel ?? 1)) {
+            let promises = files
+                .map(processEpub)
+                .map(p => p.then(({ diags, epub, epubFilePath }) => {
+                    if ((++count % 1000) === 0) {
+                        console.log(`Checked ${count} files`)
+                        if (problems.length > 0) {
+                            console.log(`Total problems: ${problems.length}`)
+                        }
                     }
-                }
-                if (options.show || diags.length > 0) {
-                    console.log(`File: ${epubFilePath}::::::::::`)
-                }
-                if (options.show) {
-                    for (let path of options.show) {
-                        console.log(`${path}::::::::::`)
-                        console.log(inspect(getValue(epub, path), false, null, true))
+                    if (options.show || diags.length > 0) {
+                        console.log(`File: ${epubFilePath}::::::::::`)
                     }
-                }
-                if (diags.length > 0) {
-                    problems.push(epubFilePath)
-                    printDiagnostics(diags)
-                    if (options.stopOnError) {
-                        throw new Error('exit')
+                    if (options.show) {
+                        for (let path of options.show) {
+                            console.log(`${path}::::::::::`)
+                            console.log(inspect(getValue(epub, path), false, null, true))
+                        }
                     }
-                }
-            }))
-        await Promise.all(promises)
+                    if (diags.length > 0) {
+                        problems.push(epubFilePath)
+                        printDiagnostics(diags)
+                        if (options.stopOnError) {
+                            throw new Error('exit')
+                        }
+                    }
+                }))
+            await Promise.all(promises)
+        }
+    } catch {
+        return
+    } finally {
         if (problems.length > 0) {
             console.log('Problems::::::::::')
             console.log(problems.join('\n'))
         }
-    } catch {
-        return
     }
 }
 
@@ -193,4 +193,18 @@ function getValue(object: any, path: string) {
         value = value[part]
     }
     return value
+}
+
+async function* makeBatchesAsync<T>(source: AsyncGenerator<T>, batchSize: number): AsyncGenerator<T[]> {
+    let batch: T[] = []
+    for await (const item of source) {
+        batch.push(item)
+        if (batch.length >= batchSize) {
+            yield batch
+            batch = []
+        }
+    }
+    if (batch.length > 0) {
+        yield batch
+    }
 }
