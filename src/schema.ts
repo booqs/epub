@@ -86,6 +86,11 @@ export const opf2meta = z.object({
     '@content': z.string(),
 }).strict()
 
+// Note: epub2
+const epub2metaTag = z.tuple([z.object({
+    '#text': z.string(),
+}).strict()])
+
 const metadata = z.object({
     'meta': z.array(z.union([
         meta,
@@ -120,6 +125,22 @@ const metadata = z.object({
     'dc:source': z.array(dcOptionalElement).optional(),
     'dc:subject': z.array(dcOptionalElement).optional(),
     'dc:type': z.array(dcOptionalElement).optional(),
+    // Note: epub2
+    'title': epub2metaTag.optional(),
+    'creator': epub2metaTag.optional(),
+    'subject': epub2metaTag.optional(),
+    'description': epub2metaTag.optional(),
+    'publisher': epub2metaTag.optional(),
+    'contributor': epub2metaTag.optional(),
+    'date': epub2metaTag.optional(),
+    'type': epub2metaTag.optional(),
+    'format': epub2metaTag.optional(),
+    'identifier': epub2metaTag.optional(),
+    'source': epub2metaTag.optional(),
+    'language': epub2metaTag.optional(),
+    'relation': epub2metaTag.optional(),
+    'coverage': epub2metaTag.optional(),
+    'rights': epub2metaTag.optional(),
 }).strict()
 
 // Elemetns/Manifest
