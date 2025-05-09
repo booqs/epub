@@ -92,10 +92,16 @@ const epub2metaTag = z.tuple([z.object({
 }).strict()])
 
 const metadata = z.object({
+    // Note: epub2
+    '@xmlns:dc': z.string().optional(),
+    '@xmlns:dcterms': z.string().optional(),
+    '@xmlns:xsi': z.string().optional(),
+    '@xmlns:opf': z.string().optional(),
+    // -----------
     'meta': z.array(z.union([
         meta,
         opf2meta, // Note: epub2
-    ])).nonempty(),
+    ])).optional(), // Note: epub2 makes it optional
     'dc:identifier': z.array(z.object({
         '@id': id.optional(),
         '#text': z.string(),
@@ -335,7 +341,7 @@ const ncxContent = z.tuple([z.object({
     '@src': href,
 }).strict()])
 
-// TODO: verify this is okay
+// Note: epub2
 export const ncxDocument = z.object({
     'ncx': z.tuple([z.object({
         '@version': z.literal('2005-1'),
@@ -350,16 +356,22 @@ export const ncxDocument = z.object({
             'navPoint': z.array(navPoint).nonempty(),
         }).strict()]),
         'pageList': z.tuple([z.object({
+            // Note: speculative
+            '@id': z.string().optional(),
+            '@class': z.string().optional(),
+            // Main
             'navLabel': ncxText,
             'pageTarget': z.array(z.object({
                 '@id': id,
                 '@value': z.string(),
                 '@playOrder': z.string(), // should be number
-                navLabel: ncxText,
-                content: ncxContent,
+                'navLabel': ncxText,
+                'content': ncxContent,
+                // Note: speculative
+                '@type': z.string().optional(),
             }).strict())
         }).strict()]).optional(),
-        navList: z.tuple([z.object({
+        'navList': z.tuple([z.object({
             'navLabel': ncxText,
             'navTarget': z.array(z.object({
                 '@id': id,
