@@ -59,7 +59,7 @@ const dcCreatorOrContributor = z.object({
     '@xml:lang': xmlLang.optional(),
     '@opf:role': z.string().optional(), // Note: epub2
     '@opf:file-as': z.string().optional(), // Note: epub2
-    '#text': z.string(),
+    '#text': z.string().optional(), // Note: traum optional
     ...epub2DcExtra,
 }).strict()
 
@@ -98,13 +98,15 @@ const metadata = z.object({
     '@xmlns:xsi': z.string().optional(),
     '@xmlns:opf': z.string().optional(),
     // -----------
+    // Note: traum
+    '@xmlns:calibre': z.string().optional(),
     'meta': z.array(z.union([
         meta,
         opf2meta, // Note: epub2
     ])).optional(), // Note: epub2 makes it optional
     'dc:identifier': z.array(z.object({
         '@id': id.optional(),
-        '#text': z.string(),
+        '#text': z.string().optional(), // Note: traum optional
         ...epub2DcExtra,
     }).strict()).nonempty(),
     'dc:title': z.array(z.object({
@@ -116,7 +118,7 @@ const metadata = z.object({
     }).strict()).nonempty(),
     'dc:language': z.array(z.object({
         '@id': id.optional(),
-        '#text': z.string(),
+        '#text': z.string().optional(), // Note: traum optional
         ...epub2DcExtra,
     }).strict()).optional(), // Note: epub2 optional
     'dc:contributor': z.array(dcCreatorOrContributor).optional(),
@@ -185,14 +187,10 @@ export const knownGuideReferenceTypes = [
     'dedication', 'epigraph', 'foreword', 'loi', 'lot', 'notes',
     'preface', 'text',
 ] as const
-const otherGuideReferenceType = z.string().startsWith('other.') as z.ZodType<`other.${string}`>
 const guide = z.object({
     'reference': z.array(z.object({
         '@href': href,
-        '@type': z.union([
-            z.enum(knownGuideReferenceTypes),
-            otherGuideReferenceType,
-        ]),
+        '@type': z.string().optional(),
         '@title': z.string().optional(),
     }).strict()).nonempty(),
 })
