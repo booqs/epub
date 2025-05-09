@@ -22,9 +22,14 @@ export default [
       // ESLint core rules
       'semi': ['error', 'never'],
       'prefer-const': 'error',
+      'no-unused-vars': 'off',
       
       // TypeScript rules
       '@typescript-eslint/no-explicit-any': 'off',
+      "@typescript-eslint/no-unused-vars": ["error", {
+        varsIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+      }]
     },
   },
 ];

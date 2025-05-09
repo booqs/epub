@@ -211,7 +211,7 @@ const collectionBaseShape = {
         '@id': id.optional(),
     }).strict()).optional(),
 }
-const collectionBase = z.object(collectionBaseShape).strict()
+const _collectionBase = z.object(collectionBaseShape).strict()
 type Collection = z.infer<typeof collectionBase> & {
     collection?: Collection[]
 }
@@ -272,7 +272,7 @@ const liBaseShape = {
         '#text': z.string().optional(),
     }).strict()]).optional(),
 }
-const liBase = z.object(liBaseShape).strict()
+const _liBase = z.object(liBaseShape).strict()
 type Li = z.infer<typeof liBase> & {
     ol?: z.infer<typeof ol>[]
 }
@@ -326,7 +326,7 @@ const navPointBaseShape = {
         '@src': href,
     }).strict()]),
 }
-const navPointBase = z.object(navPointBaseShape).strict()
+const _navPointBase = z.object(navPointBaseShape).strict()
 export type NavPoint = z.infer<typeof navPointBase> & {
     navPoint?: NavPoint[],
 }

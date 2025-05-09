@@ -4,7 +4,6 @@ import { FullEpub, parseEpub, Unvalidated } from './index'
 import util, { inspect } from 'util'
 import { Diagnostic, diagnoser } from './diagnostic'
 import { validateEpub } from './validate'
-import { openEpub } from './open'
 import { createFileProvider } from './mock'
 
 main()
@@ -159,20 +158,6 @@ async function processEpub(epubFilePath: string): Promise<{
         epub: value,
         diags: diags.all(),
     }
-}
-
-async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
-    const fileProvider = createFileProvider(fs.promises.readFile(epubFilePath))
-    const iterator = openEpub(fileProvider)
-    for await (const pkg of iterator.packages()) {
-        for (const item of pkg.items()) {
-            item.load()
-        }
-        for (const item of pkg.spine()) {
-            item.item
-        }
-    }
-    return iterator.diagnostics()
 }
 
 async function* getAllEpubFiles(directoryPath: string): AsyncGenerator<string> {

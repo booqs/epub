@@ -1,6 +1,6 @@
 import { Diagnoser } from "./diagnostic"
 import { loadXml, FileProvider, getBasePath, pathRelativeTo } from "./file"
-import { ContainerDocument, ManifestItem, NcxDocument, Package, PackageDocument, PackageItem, Unvalidated } from "./model"
+import { ContainerDocument, ManifestItem, Package, PackageDocument, PackageItem, Unvalidated } from "./model"
 import { parseXml } from "./xml"
 
 export function getRootfiles(container: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): string[] {

@@ -41,7 +41,7 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     }
 }
 
-type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
+export type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
 async function* packageIterator(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser) {
     const rootfiles = getRootfiles(container, diags)
     for (const fullPath of rootfiles) {
