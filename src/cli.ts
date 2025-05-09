@@ -10,18 +10,28 @@ import { createFileProvider } from './mock'
 main()
 function main() {
     const options = parseArgv(process.argv)
-    logTime('checkAllEpubs', () => checkAllEpubs(options))
+    if (options.parallel) {
+        logTime('checkAllEpubsParallel', () => checkAllEpubsParallel(options))
+    } else {
+        logTime('checkAllEpubs', () => checkAllEpubs(options))
+    }
 }
 
 type Options = {
     inputPath?: string,
     show?: string[],
+    stopOnError?: boolean,
+    parallel?: boolean,
 }
 function parseArgv(args: string[]) {
     const options: Options = {}
     const [_, __, ...rest] = args
     for (const arg of rest) {
-        if (arg.startsWith('--')) {
+        if (arg === '--quick-stop') {
+            options.stopOnError = true
+        } else if (arg === '--parallel') {
+            options.parallel = true
+        } else if (arg.startsWith('--')) {
             if (options.show === undefined) {
                 options.show = []
             }
@@ -40,18 +50,52 @@ async function logTime(name: string, action: () => Promise<void>) {
     console.log(`${name} took ${end - start}ms`)
 }
 
-export async function checkAllEpubsParallel(inputPath: string) {
-    const filesGenerator = getAllEpubFiles(inputPath)
+export async function checkAllEpubsParallel(options: Options) {
+    const filesGenerator = getAllEpubFiles(options.inputPath ?? './epubs')
     let files: string[] = []
     for await (const file of filesGenerator) {
         files.push(file)
     }
-    let promises = files.map(processEpub)
-    let results = await Promise.all(promises)
-    for (let { diags } of results) {
-        if (diags.length > 0) {
-            printDiagnostics(diags)
+    try {
+        let count = 0
+        const problems: string[] = []
+        let promises = files
+            .map(processEpub)
+            .map(p => p.then(({ diags, epub, epubFilePath }) => {
+                if ((++count % 1000) === 0) {
+                    console.log(`Checked ${count} files`)
+                    if (problems.length > 0) {
+                        console.log(`Total problems: ${problems.length}`)
+                    }
+                }
+                if (options.show || diags.length > 0) {
+                    console.log(`File: ${epubFilePath}::::::::::`)
+                }
+                if (diags.length > 0) {
+                    problems.push(epubFilePath)
+                    printDiagnostics(diags)
+                    if (options.stopOnError) {
+                        throw new Error('exit')
+                    }
+                }
+                if (options.show) {
+                    for (let packages of epub?.packages ?? []) {
+                        for (let pkg of packages.document?.package ?? []) {
+                            for (let show of options.show) {
+                                console.log(`${show}::::::::::`)
+                                console.log(inspect((pkg as any)[show], false, null, true))
+                            }
+                        }
+                    }
+                }
+            }))
+        await Promise.all(promises)
+        if (problems.length > 0) {
+            console.log('Problems::::::::::')
+            console.log(problems.join('\n'))
         }
+    } catch {
+        return
     }
 }
 
@@ -61,8 +105,11 @@ export async function checkAllEpubs(options: Options) {
     const problems: string[] = []
     let count = 0
     for await (const file of files) {
-        if (++count % 1000 == 0) {
+        if ((++count % 1000) === 0) {
             console.log(`Checked ${count} files`)
+            if (problems.length > 0) {
+                console.log(`Total problems: ${problems.length}`)
+            }
         }
         const { diags, epub } = await processEpub(file)
         diagnostics.push(...diags)
@@ -73,6 +120,9 @@ export async function checkAllEpubs(options: Options) {
         if (diags.length > 0) {
             problems.push(file)
             printDiagnostics(diags)
+            if (options.stopOnError) {
+                return
+            }
         }
         if (options.show) {
             for (let packages of epub?.packages ?? []) {
@@ -84,11 +134,10 @@ export async function checkAllEpubs(options: Options) {
                 }
             }
         }
-        console.log(`Checked ${count} files`)
-        if (problems.length > 0) {
-            console.log('Problems::::::::::')
-            console.log(problems.join('\n'))
-        }
+    }
+    if (problems.length > 0) {
+        console.log('Problems::::::::::')
+        console.log(problems.join('\n'))
     }
 }
 
@@ -97,6 +146,7 @@ function printDiagnostics(diagnostics: Diagnostic[]) {
 }
 
 async function processEpub(epubFilePath: string): Promise<{
+    epubFilePath: string,
     epub: Unvalidated<FullEpub> | undefined,
     diags: Diagnostic[],
 }> {
@@ -107,6 +157,7 @@ async function processEpub(epubFilePath: string): Promise<{
         validateEpub(value, diags)
     }
     return {
+        epubFilePath,
         epub: value,
         diags: diags.all(),
     }
