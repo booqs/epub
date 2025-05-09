@@ -1,19 +1,35 @@
 // Refere https://www.w3.org/TR/epub-33/ for the EPUB spec.
 
-export type Unvalidated<T> = T extends string ? string
-    : T extends Array<infer U> ? Unvalidated<U>[]
-    : T extends object ? {
+import { z } from "zod";
+import {
+    containerDocument, encryptionDocument, manifestDocument, metadataDocument, navDocument, ncxDocument, opf2meta, packageDocument, rightsDocument, signaturesDocument,
+} from "./schema";
+
+export type Unvalidated<T> =
+    T extends Array<infer U> ? Unvalidated<U>[] :
+    T extends object ? {
         [P in keyof T]?: Unvalidated<T[P]>;
-    } : T;
+    } :
+    T extends string ? string :
+    T extends number ? number :
+    T extends boolean ? boolean :
+    T
+    ;
+
+export type Validated<T> =
+    T extends Array<infer U> ? Validated<U>[] :
+    T extends object ? {
+        [P in keyof T]: Validated<T[P]>;
+    } :
+    T extends string ? T :
+    T extends number ? T :
+    T extends boolean ? T :
+    T
+    ;
 
 export type Attributes = {
     [Attr in `@${string}`]?: string;
 }
-
-export type LinkMediaType = string
-export type Language = string // TODO: define this better
-export type NumberString = `${number}`
-export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
 
 export type BinaryType = unknown
 
@@ -49,30 +65,22 @@ export type FullEpub = {
     rights?: RightsDocument,
     signatures?: SignaturesDocument,
 }
-export type ContainerDocument = {
-    container: [{
-        '@version': string,
-        rootfiles: [{
-            rootfile: {
-                '@full-path': string,
-                '@media-type': 'application/oebps-package+xml',
-            }[],
-        }],
-        links: {
-            link: {
-                '@href': string,
-                '@rel': string,
-                '@media-type'?: LinkMediaType,
-            }[],
-        }[],
-    }]
-}
-// TODO: implement this
-export type EncryptionDocument = Xml
-export type SignaturesDocument = Xml
-export type MetadataDocument = Xml
-export type RightsDocument = Xml
-export type ManifestDocument = Xml
+export type ContainerDocument = z.infer<typeof containerDocument>
+export type EncryptionDocument = z.infer<typeof encryptionDocument>
+export type SignaturesDocument = z.infer<typeof signaturesDocument>
+export type MetadataDocument = z.infer<typeof metadataDocument>
+export type RightsDocument = z.infer<typeof rightsDocument>
+export type ManifestDocument = z.infer<typeof manifestDocument>
+export type PackageDocument = z.infer<typeof packageDocument>
+export type NavDocument = z.infer<typeof navDocument>
+export type NcxDocument = z.infer<typeof ncxDocument>
+
+export type NavOl = NavDocument['html'][number]['body'][number]['nav'][number]['ol'][number]
+
+export type NavPoint = NonNullable<NcxDocument['ncx'][number]['navMap'][number]['navPoint']>[number]
+export type PageTarget = NonNullable<NcxDocument['ncx'][number]['pageList']>[number]['pageTarget'][number]
+
+export type Opf2Meta = z.infer<typeof opf2meta>
 
 export type Package = {
     fullPath: string,
@@ -83,95 +91,6 @@ export type Package = {
     nav?: NavDocument,
 }
 
-export type PackageDocument = {
-    package: [{
-        '@unique-identifier': string,
-        '@version': string,
-        '@prefix'?: string,
-        '@id'?: string,
-        '@dir'?: ContentDirection,
-        '@xml:lang'?: string,
-        metadata: [PackageMetadata],
-        manifest: [PackageManifest],
-        spine: [PackageSpine],
-        collection?: PackageCollection[],
-        guide?: [PackageGuide],
-        bindings?: XmlNode[],
-    }],
-}
-export type PackageMetadata = {
-    meta?: Meta[],
-    'dc:identifier'?: {
-        '@id'?: string,
-        '#text': string,
-    }[],
-    'dc:title'?: {
-        '@id'?: string,
-        '@dir'?: ContentDirection,
-        '@xml:lang'?: string,
-        '#text': string,
-    }[],
-    'dc:language'?: {
-        '@id'?: string,
-        '#text': string,
-    }[],
-} & Opf2Metadata & OptionalDcMetadata
-export const opf2MetadataKeys = [
-    'title', 'creator', 'subject', 'description', 'publisher', 'contributor',
-    'date', 'type', 'format', 'identifier', 'coverage', 'source', 'relation',
-    'rights', 'language',
-] as const
-export type Opf2MetadataKey = typeof opf2MetadataKeys[number]
-export type Opf2Metadata = {
-    [key in Opf2MetadataKey]?: {
-        '#text': string,
-    }[];
-}
-export const optionalDcMetadataKeys = [
-    'dc:contributor', 'dc:coverage', 'dc:creator', 'dc:date', 'dc:description',
-    'dc:format', 'dc:publisher', 'dc:relation', 'dc:rights', 'dc:source',
-    'dc:subject', 'dc:type',
-] as const
-export type OptionalDcMetadataKey = typeof optionalDcMetadataKeys[number]
-export type OptionalDcMetadata = {
-    [key in OptionalDcMetadataKey]?: Array<{
-        '@id'?: string,
-        '@dir'?: ContentDirection,
-        '@xml:lang'?: string,
-        '#text': string,
-    } & Attributes>;
-}
-export type Meta = Opf2Meta | Opf3Meta
-export const knownMetaProperties = [
-    'alternate-script', 'authority', 'belongs-to-collection', 'collection-type', 'display-seq', 'file-as', 'group-position', 'identifier-type', 'role', 'source-of', 'term', 'title-type',
-] as const
-export type MetaProperty = | typeof knownMetaProperties[number] | `${string}:${string}`
-export type Opf3Meta = {
-    '@property': MetaProperty,
-    '@dir'?: ContentDirection,
-    '@id'?: string,
-    '@refines'?: string,
-    '@scheme'?: string,
-    '@xml:lang'?: string,
-    '#text': string,
-}
-export type Opf2Meta = {
-    '@name': string,
-    '@content': string,
-}
-
-export type PackageManifest = {
-    '@id'?: string,
-    item: ManifestItem[],
-}
-export type ManifestItem = {
-    '@id': string,
-    '@href': string,
-    '@media-type': ManifestItemMediaType,
-    '@fallback'?: string,
-    '@properties'?: string,
-    '@media-overlay'?: string,
-}
 export const knownTextItems = [
     'application/xhtml+xml', 'application/x-dtbncx+xml',
     'text/css',
@@ -186,6 +105,20 @@ export const knownManifestItemMediaTypes = [
 export type TextItemMediaType = typeof knownTextItems[number]
 export type BinaryItemMediaType = typeof knownBinaryItems[number]
 export type ManifestItemMediaType = TextItemMediaType | BinaryItemMediaType
+
+export type PackageManifest = {
+    '@id'?: string,
+    item: ManifestItem[],
+}
+export type ManifestItem = {
+    '@id': string,
+    '@href': string,
+    '@media-type': ManifestItemMediaType,
+    '@fallback'?: string,
+    '@properties'?: string,
+    '@media-overlay'?: string,
+}
+
 export type PackageItem = TextItem | BinaryItem | UnknownItem
 export type TextItem = {
     item: Unvalidated<ManifestItem>,
@@ -204,126 +137,6 @@ export type UnknownItem = {
     mediaType: string | undefined,
     kind: 'unknown',
     content: BinaryType,
-}
-
-export type PackageSpine = {
-    '@id'?: string,
-    '@toc'?: string,
-    '@page-progression-direction'?: ContentDirection,
-    itemref: {
-        '@idref': string,
-        '@linear'?: 'yes' | 'no',
-        '@id'?: string,
-        '@properties'?: string,
-    }[],
-}
-
-export type CollectionRole = string
-export type PackageCollection = {
-    '@role': CollectionRole,
-    '@id'?: string,
-    '@dir'?: ContentDirection,
-    '@xml:lang'?: string,
-    metadata?: PackageMetadata[],
-    collection?: PackageCollection[],
-    link?: {
-        '@href': string,
-    }[],
-}
-
-export type PackageGuide = {
-    guide: [{
-        reference: {
-            '@type': GuideReferenceType,
-            '@href': string,
-            '@title'?: string,
-        }[],
-    }]
-}
-export const knownGuideReferenceTypes = [
-    'cover', 'title-page', 'toc', 'index', 'glossary', 'acknowledgements',
-    'bibliography', 'colophon', 'dedication', 'epigraph', 'foreword',
-    'loi', 'lot', 'notes', 'preface', 'text',
-    'copyright-page',
-] as const
-export type GuideReferenceType = typeof knownGuideReferenceTypes[number] | `other${string}`
-
-export type NcxDocument = {
-    ncx: [{
-        '@version': string,
-        '@xmlns': string,
-        '@xml:lang'?: string,
-        navMap: [{
-            navPoint: NavPoint[],
-        }],
-        head?: [{
-            meta: Opf2Meta[],
-        }],
-        docTitle?: [NcxText],
-        docAuthor?: [NcxText],
-        pageList?: [{
-            navLabel: [NcxText],
-            pageTarget: PageTarget[],
-        }],
-        navList?: [{
-            navLabel: [NcxText],
-            navTarget: {
-                '@id': string,
-                navLabel: [NcxText],
-                content: [NcxContent],
-            }[],
-        }],
-    }]
-}
-export type NavPoint = {
-    '@id': string,
-    '@playOrder': NumberString,
-    navLabel: [NcxText],
-    content: [NcxContent],
-    navPoint?: NavPoint[],
-}
-export type PageTarget = {
-    '@id': string,
-    '@value': string,
-    '@type': string,
-    '@playOrder': NumberString,
-    navLabel: [NcxText],
-    content: [NcxContent],
-}
-export type NcxContent = {
-    '@src': string,
-}
-export type NcxText = {
-    text: [XmlText],
-}
-
-export type NavDocument = {
-    html: [{
-        body: [NavElement],
-    }]
-}
-
-export type NavElement = {
-    nav: [{
-        '@epub:type': 'toc' | 'page-list' | 'landmark',
-        h1?: [XmlText],
-        h2?: [XmlText],
-        h3?: [XmlText],
-        h4?: [XmlText],
-        h5?: [XmlText],
-        h6?: [XmlText],
-        ol: [NavList],
-    }],
-}
-export type NavList = {
-    li: {
-        a?: [{
-            '@href': string,
-            '#text': string,
-        }],
-        span?: [XmlText],
-        ol?: [NavList],
-    }[],
 }
 
 export type TocItem = {

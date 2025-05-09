@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
-import { parseEpub } from './index'
-import util from 'util'
+import { FullEpub, parseEpub, Unvalidated } from './index'
+import util, { inspect } from 'util'
 import { Diagnostic, diagnoser } from './diagnostic'
 import { validateEpub } from './validate'
 import { openEpub } from './open'
@@ -9,8 +9,39 @@ import { createFileProvider } from './mock'
 
 main()
 function main() {
-    const inputPath = process.argv[2] ?? './epubs'
-    logTime('checkAllEpubs', () => checkAllEpubs(inputPath))
+    const options = parseArgv(process.argv)
+    if (options.parallel) {
+        logTime('checkAllEpubsParallel', () => checkAllEpubsParallel(options))
+    } else {
+        logTime('checkAllEpubs', () => checkAllEpubs(options))
+    }
+}
+
+type Options = {
+    inputPath?: string,
+    show?: string[],
+    stopOnError?: boolean,
+    parallel?: number,
+}
+function parseArgv(args: string[]) {
+    const options: Options = {}
+    const [_, __, ...rest] = args
+    for (const arg of rest) {
+        if (arg === '--quick-fail') {
+            options.stopOnError = true
+        } else if (arg.startsWith('--parallel')) {
+            const batchSize = parseInt(arg.substring('--parallel='.length))
+            options.parallel = !batchSize || isNaN(batchSize) ? 1 : batchSize
+        } else if (arg.startsWith('--')) {
+            if (options.show === undefined) {
+                options.show = []
+            }
+            options.show.push(arg.substring('--'.length))
+        } else {
+            options.inputPath = arg
+        }
+    }
+    return options
 }
 
 async function logTime(name: string, action: () => Promise<void>) {
@@ -20,42 +51,91 @@ async function logTime(name: string, action: () => Promise<void>) {
     console.log(`${name} took ${end - start}ms`)
 }
 
-export async function checkAllEpubsParallel(inputPath: string) {
-    const filesGenerator = getAllEpubFiles(inputPath)
-    let files: string[] = []
-    for await (const file of filesGenerator) {
-        files.push(file)
-    }
-    let promises = files.map(getEpubDiagnostic)
-    let results = await Promise.all(promises)
-    for (let diags of results) {
-        if (diags.length > 0) {
-            printDiagnostics(diags)
+export async function checkAllEpubsParallel(options: Options) {
+    const filesGenerator = getAllEpubFiles(options.inputPath ?? './epubs')
+    let count = 0
+    const problems: string[] = []
+    try {
+        for await (const files of makeBatchesAsync(filesGenerator, options.parallel ?? 1)) {
+            let promises = files
+                .map(processEpub)
+                .map(p => p.then(({ diags, epub, epubFilePath }) => {
+                    if ((++count % 1000) === 0) {
+                        console.log(`Checked ${count} files`)
+                        if (problems.length > 0) {
+                            console.log(`Total problems: ${problems.length}`)
+                        }
+                    }
+                    if (options.show || diags.length > 0) {
+                        console.log(`File: ${epubFilePath}::::::::::`)
+                    }
+                    if (options.show) {
+                        for (let path of options.show) {
+                            console.log(`${path}::::::::::`)
+                            console.log(inspect(getValue(epub, path), false, null, true))
+                        }
+                    }
+                    if (diags.length > 0) {
+                        problems.push(epubFilePath)
+                        printDiagnostics(diags)
+                        if (options.stopOnError) {
+                            throw new Error('exit')
+                        }
+                    }
+                }))
+            await Promise.all(promises)
+        }
+    } catch {
+        return
+    } finally {
+        if (problems.length > 0) {
+            console.log('Problems::::::::::')
+            console.log(problems.join(', '))
         }
     }
 }
 
-export async function checkAllEpubs(inputPath: string) {
+export async function checkAllEpubs(options: Options) {
     let diagnostics: Diagnostic[] = []
-    const files = getAllEpubFiles(inputPath)
+    const files = getAllEpubFiles(options.inputPath ?? './epubs')
     const problems: string[] = []
     let count = 0
     for await (const file of files) {
-        if (++count % 1000 == 0) {
-            console.log(`Checked ${count} files`)
-        }
-        const diags = await getEpubDiagnostic(file)
-        diagnostics.push(...diags)
-        if (diags.length > 0) {
-            console.log(`File: ${file}::::::::::`)
+        try {
+            if ((++count % 1000) === 0) {
+                console.log(`Checked ${count} files`)
+                if (problems.length > 0) {
+                    console.log(`Total problems: ${problems.length}`)
+                }
+            }
+            const { diags, epub } = await processEpub(file)
+            diagnostics.push(...diags)
+            if (options.show || diags.length > 0) {
+                console.log(`File: ${file}::::::::::`)
+            }
+
+            if (options.show) {
+                for (let path of options.show) {
+                    console.log(`${path}::::::::::`)
+                    console.log(inspect(getValue(epub, path), false, null, true))
+                }
+            }
+
+            if (diags.length > 0) {
+                problems.push(file)
+                printDiagnostics(diags)
+                if (options.stopOnError) {
+                    return
+                }
+            }
+        } catch (e) {
+            console.error(`Unhandled exception processing file ${file}: ${e}`)
             problems.push(file)
-            printDiagnostics(diags)
         }
     }
-    console.log(`Checked ${count} files`)
     if (problems.length > 0) {
         console.log('Problems::::::::::')
-        console.log(problems.join('\n'))
+        console.log(problems.join(', '))
     }
 }
 
@@ -63,14 +143,22 @@ function printDiagnostics(diagnostics: Diagnostic[]) {
     console.log(util.inspect(diagnostics, false, null, true))
 }
 
-async function getEpubDiagnostic(epubFilePath: string): Promise<Diagnostic[]> {
+async function processEpub(epubFilePath: string): Promise<{
+    epubFilePath: string,
+    epub: Unvalidated<FullEpub> | undefined,
+    diags: Diagnostic[],
+}> {
     const fileProvider = createFileProvider(fs.promises.readFile(epubFilePath))
     let diags = diagnoser(epubFilePath)
     let value = await parseEpub(fileProvider, diags)
     if (value) {
         validateEpub(value, diags)
     }
-    return diags.all()
+    return {
+        epubFilePath,
+        epub: value,
+        diags: diags.all(),
+    }
 }
 
 async function getEpubDiagnostic2(epubFilePath: string): Promise<Diagnostic[]> {
@@ -97,5 +185,31 @@ async function* getAllEpubFiles(directoryPath: string): AsyncGenerator<string> {
         }
     } else if (path.extname(directoryPath) === '.epub') {
         yield directoryPath
+    }
+}
+
+function getValue(object: any, path: string) {
+    const parts = path.split('.')
+    let value = object
+    for (const part of parts) {
+        if (value === undefined) {
+            return undefined
+        }
+        value = value[part]
+    }
+    return value
+}
+
+async function* makeBatchesAsync<T>(source: AsyncGenerator<T>, batchSize: number): AsyncGenerator<T[]> {
+    let batch: T[] = []
+    for await (const item of source) {
+        batch.push(item)
+        if (batch.length >= batchSize) {
+            yield batch
+            batch = []
+        }
+    }
+    if (batch.length > 0) {
+        yield batch
     }
 }

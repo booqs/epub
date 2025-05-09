@@ -4,6 +4,6 @@ export { FileProvider } from './file'
 export { parseEpub } from './parse'
 export { openEpub } from './open'
 export {
-    validateEpub, validateContainer, validatePackageDocument,
+    validateEpub, validateContainerDocument, validatePackageDocument,
     validateNavDocument, validateNcxDocument,
 } from './validate'
