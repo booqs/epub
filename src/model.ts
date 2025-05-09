@@ -3,19 +3,28 @@
 import { z } from "zod";
 import {
     containerDocument, encryptionDocument, manifestDocument, metadataDocument, navDocument, ncxDocument, opf2meta, packageDocument, rightsDocument, signaturesDocument,
-    knownGuideReferenceTypes, knownMetaProperties,
 } from "./schema";
-export { knownGuideReferenceTypes, knownMetaProperties }
 
-export type Unvalidated<T> = T extends string ? string
-    : T extends Array<infer U> ? Unvalidated<U>[]
-    : T extends object ? {
+export type Unvalidated<T> =
+    T extends Array<infer U> ? Unvalidated<U>[] :
+    T extends object ? {
         [P in keyof T]?: Unvalidated<T[P]>;
-    }
-    : T extends string ? string
-    : T extends number ? number
-    : T extends boolean ? boolean
-    : T
+    } :
+    T extends string ? string :
+    T extends number ? number :
+    T extends boolean ? boolean :
+    T
+    ;
+
+export type Validated<T> =
+    T extends Array<infer U> ? Validated<U>[] :
+    T extends object ? {
+        [P in keyof T]: Validated<T[P]>;
+    } :
+    T extends string ? T :
+    T extends number ? T :
+    T extends boolean ? T :
+    T
     ;
 
 export type Attributes = {
