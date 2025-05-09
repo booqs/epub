@@ -38,11 +38,19 @@ const idref = z.string() //.brand<'idref'>() // TODO: check validity
 
 // Elements/Metadata
 
+// Note: epub2
+const epub2DcExtra = {
+    '@opf:scheme': z.string().optional(),
+    '@opf:event': z.string().optional(),
+    '@xsi:type': z.string().optional(),
+}
+
 const dcOptionalElement = z.object({
     '@id': id.optional(),
     '@dir': dir.optional(),
     '@xml:lang': xmlLang.optional(),
     '#text': z.string(),
+    ...epub2DcExtra,
 }).strict()
 
 const dcCreatorOrContributor = z.object({
@@ -52,6 +60,7 @@ const dcCreatorOrContributor = z.object({
     '@opf:role': z.string().optional(), // Note: epub2
     '@opf:file-as': z.string().optional(), // Note: epub2
     '#text': z.string(),
+    ...epub2DcExtra,
 }).strict()
 
 export const knownMetaProperties = [
@@ -85,20 +94,23 @@ const metadata = z.object({
     'dc:identifier': z.array(z.object({
         '@id': id.optional(),
         '#text': z.string(),
+        ...epub2DcExtra,
     }).strict()).nonempty(),
     'dc:title': z.array(z.object({
         '@id': id.optional(),
         '@dir': dir.optional(),
         '@xml:lang': xmlLang.optional(),
         '#text': z.string(),
+        ...epub2DcExtra,
     }).strict()).nonempty(),
     'dc:language': z.array(z.object({
         '@id': id.optional(),
         '#text': z.string(),
+        ...epub2DcExtra,
     }).strict()).nonempty(),
     'dc:contributor': z.array(dcCreatorOrContributor).optional(),
-    'dc:coverage': z.array(dcCreatorOrContributor).optional(),
-    'dc:creator': z.array(dcOptionalElement).optional(),
+    'dc:creator': z.array(dcCreatorOrContributor).optional(),
+    'dc:coverage': z.array(dcOptionalElement).optional(),
     'dc:date': z.array(dcOptionalElement).optional(),
     'dc:description': z.array(dcOptionalElement).optional(),
     'dc:format': z.array(dcOptionalElement).optional(),
@@ -212,6 +224,12 @@ export const packageDocument = z.object({
         'collection': z.array(collection).optional(),
         'guide': z.tuple([guide]).optional(),
         'bindings': z.tuple([bindings]).optional(),
+        // Note: epub2
+        '@xmlns:opf': z.string().optional(),
+        '@xmlns:dc': z.string().optional(),
+        '@xmlns:dcterms': z.string().optional(),
+        '@xmlns:xsi': z.string().optional(),
+        '@xmlns': z.string().optional(),
     }).strict()]),
 }).strict()
 
