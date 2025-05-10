@@ -23,6 +23,9 @@ export default [
       'semi': ['error', 'never'],
       'prefer-const': 'error',
       'no-unused-vars': 'off',
+      'indent': ['error', 4],
+      'quotes': ['error', 'single'],
+      'comma-dangle': ['error', 'only-multiline'],
       
       // TypeScript rules
       '@typescript-eslint/no-explicit-any': 'off',

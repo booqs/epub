@@ -1,10 +1,10 @@
-import { z } from "zod"
-import { Diagnoser, diagnoser } from "./diagnostic"
+import { z } from 'zod'
+import { Diagnoser, diagnoser } from './diagnostic'
 import {
     ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, Package, PackageDocument,
     PackageItem, RightsDocument, SignaturesDocument, Unvalidated,
-} from "./model"
-import { containerDocument, navDocument, ncxDocument, packageDocument } from "./schema"
+} from './model'
+import { containerDocument, navDocument, ncxDocument, packageDocument } from './schema'
 
 export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser): FullEpub | undefined {
     const diags = optDiags?.scope('epub validation') ?? diagnoser('epub validation')

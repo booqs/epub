@@ -1,6 +1,6 @@
-import { XMLParser } from "fast-xml-parser"
-import { Html, Xml } from "./model"
-import { Diagnoser } from "./diagnostic"
+import { XMLParser } from 'fast-xml-parser'
+import { Html, Xml } from './model'
+import { Diagnoser } from './diagnostic'
 
 export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undefined {
     if (xml === undefined) {
@@ -45,8 +45,8 @@ export function parseHtml(xml: string | undefined, diags: Diagnoser): Html | und
         preserveOrder: true,
         attributeNamePrefix: '',
         attributesGroupName: 'attrs',
-        unpairedTags: ["hr", "br", "link", "meta"],
-        stopNodes: ["*.pre", "*.script"],
+        unpairedTags: ['hr', 'br', 'link', 'meta'],
+        stopNodes: ['*.pre', '*.script'],
         processEntities: true,
         htmlEntities: true,
         alwaysCreateTextNode: true,

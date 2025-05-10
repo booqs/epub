@@ -1,6 +1,6 @@
-import { Xml } from "./model"
-import { Diagnoser, diagnoser } from "./diagnostic"
-import { parseXml } from "./xml"
+import { Xml } from './model'
+import { Diagnoser, diagnoser } from './diagnostic'
+import { parseXml } from './xml'
 
 export type FileProvider = {
     readText(path: string, diags: Diagnoser): Promise<string | undefined>,

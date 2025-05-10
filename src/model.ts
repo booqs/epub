@@ -1,9 +1,9 @@
 // Refere https://www.w3.org/TR/epub-33/ for the EPUB spec.
 
-import { z } from "zod"
+import { z } from 'zod'
 import {
     containerDocument, encryptionDocument, manifestDocument, metadataDocument, navDocument, ncxDocument, opf2meta, packageDocument, rightsDocument, signaturesDocument,
-} from "./schema"
+} from './schema'
 
 export type Unvalidated<T> =
     T extends Array<infer U> ? Unvalidated<U>[] :

@@ -1,5 +1,5 @@
 import JSZip from 'jszip'
-import { FileProvider } from "./file"
+import { FileProvider } from './file'
 
 export function createFileProvider(fileContent: Promise<Buffer>): FileProvider {
     const zip = JSZip.loadAsync(fileContent)

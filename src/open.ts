@@ -1,11 +1,11 @@
-import { Diagnoser, diagnoser } from "./diagnostic"
-import { loadContainerDocument } from "./parse"
-import { FileProvider, getBasePath, loadXml } from "./file"
+import { Diagnoser, diagnoser } from './diagnostic'
+import { loadContainerDocument } from './parse'
+import { FileProvider, getBasePath, loadXml } from './file'
 import {
     ContainerDocument, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated,
-} from "./model"
-import { getRootfiles, loadManifestItem } from "./package"
-import { parseXml } from "./xml"
+} from './model'
+import { getRootfiles, loadManifestItem } from './package'
+import { parseXml } from './xml'
 
 export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     const diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
@@ -19,14 +19,14 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     async function container() {
         const document = await getContainer()
         if (document == undefined) {
-            diags.push(`container.xml is missing`)
+            diags.push('container.xml is missing')
         }
         return document
     }
     async function* packages() {
         const container = await getContainer()
         if (container == undefined) {
-            diags.push(`failed to load container.xml`)
+            diags.push('failed to load container.xml')
         } else {
             yield* packageIterator(container, fileProvider, diags)
         }
@@ -130,7 +130,7 @@ function openPackage(document: Unvalidated<PackageDocument>, loadItem: ItemLoade
             if (optNcxDocument != undefined) {
                 return ncxToc(optNcxDocument, diags)
             }
-            diags.push(`failed to find ncx or nav toc`)
+            diags.push('failed to find ncx or nav toc')
             return undefined
         },
     }
@@ -140,7 +140,7 @@ function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: Ite
     const itemTag = document.package?.[0]?.manifest?.[0]?.item
     if (itemTag == undefined) {
         diags.push({
-            message: `package is missing manifest items`,
+            message: 'package is missing manifest items',
             data: document,
         })
         return
@@ -160,7 +160,7 @@ function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: Ite
                 const loaded = await loadItem(item)
                 if (loaded === undefined) {
                     diags.push({
-                        message: `failed to load manifest item`,
+                        message: 'failed to load manifest item',
                         data: item,
                     })
                     return undefined
@@ -175,7 +175,7 @@ function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLo
     const itemTag = document.package?.[0]?.spine?.[0]?.itemref
     if (itemTag == undefined) {
         diags.push({
-            message: `package is missing spine items`,
+            message: 'package is missing spine items',
             data: document,
         })
         return
@@ -185,7 +185,7 @@ function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLo
         const idref = item['@idref']
         if (idref == undefined) {
             diags.push({
-                message: `spine item is missing idref`,
+                message: 'spine item is missing idref',
                 data: item,
             })
             continue
@@ -193,7 +193,7 @@ function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLo
         const manifestItemOpt = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == idref)
         if (manifestItemOpt == undefined) {
             diags.push({
-                message: `spine item is not in manifest`,
+                message: 'spine item is not in manifest',
                 data: item,
             })
             continue
@@ -206,7 +206,7 @@ function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLo
                 const loaded = await loadItem(manifestItem)
                 if (loaded === undefined) {
                     diags.push({
-                        message: `failed to load manifest item`,
+                        message: 'failed to load manifest item',
                         data: manifestItem,
                     })
                     return undefined
@@ -222,14 +222,14 @@ function getPackageMetadata(document: Unvalidated<PackageDocument>, diags: Diagn
     const metadatas = document.package?.[0]?.metadata
     if (metadatas == undefined || metadatas.length == 0) {
         diags.push({
-            message: `package is missing metadata`,
+            message: 'package is missing metadata',
             data: document,
         })
         return result
     }
     if (metadatas.length > 1) {
         diags.push({
-            message: `package has multiple metadata`,
+            message: 'package has multiple metadata',
             data: document,
         })
         return result
@@ -238,7 +238,7 @@ function getPackageMetadata(document: Unvalidated<PackageDocument>, diags: Diagn
     for (const [key, value] of Object.entries(metadata)) {
         if (!Array.isArray(value)) {
             diags.push({
-                message: `package metadata is not an array`,
+                message: 'package metadata is not an array',
                 data: value,
             })
             continue
@@ -284,12 +284,12 @@ async function getNcx(document: Unvalidated<PackageDocument>, loadItem: ItemLoad
     }
     const ncxContent = ncxItem.content
     if (typeof ncxContent !== 'string') {
-        diags.push(`ncx content is not a string`)
+        diags.push('ncx content is not a string')
         return undefined
     }
     const parsed: Unvalidated<NcxDocument> | undefined = parseXml(ncxContent, diags.scope('ncx'))
     if (parsed == undefined) {
-        diags.push(`failed to parse ncx content`)
+        diags.push('failed to parse ncx content')
         return undefined
     }
     return parsed
@@ -305,26 +305,26 @@ function ncxToc(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Toc | undefine
         const pageLists = ncx.ncx?.[0]?.pageList
         if (pageLists == undefined || pageLists.length == 0) {
             diags.push({
-                message: `ncx is missing navMap and pageList`,
+                message: 'ncx is missing navMap and pageList',
                 data: ncx,
             })
             return undefined
         }
         if (pageLists.length > 1) {
             diags.push({
-                message: `ncx has multiple pageLists`,
+                message: 'ncx has multiple pageLists',
                 data: ncx,
             })
         }
         const pageList = pageLists[0]
         if (!pageList.pageTarget?.length) {
             diags.push({
-                message: `ncx pageList is missing pageTargets`,
+                message: 'ncx pageList is missing pageTargets',
                 data: ncx,
             })
             return undefined
         }
-        const title = pageList.navLabel?.[0]?.text?.[0]?.["#text"]
+        const title = pageList.navLabel?.[0]?.text?.[0]?.['#text']
         return {
             title,
             items: pageListIterator(pageList.pageTarget, diags),
@@ -332,19 +332,19 @@ function ncxToc(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Toc | undefine
     } else {
         if (navMap.length > 1) {
             diags.push({
-                message: `ncx has multiple navMaps`,
+                message: 'ncx has multiple navMaps',
                 data: ncx,
             })
         }
         const navPoints = navMap[0].navPoint
         if (navPoints == undefined || navPoints.length == 0) {
             diags.push({
-                message: `ncx navMap is missing navPoints`,
+                message: 'ncx navMap is missing navPoints',
                 data: ncx,
             })
             return undefined
         }
-        const title = ncx.ncx?.[0]?.docTitle?.[0]?.text?.[0]?.["#text"]
+        const title = ncx.ncx?.[0]?.docTitle?.[0]?.text?.[0]?.['#text']
         return {
             title,
             items: navPointsIterator(navPoints, 0, diags),
@@ -354,10 +354,10 @@ function ncxToc(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Toc | undefine
 
 function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, diags: Diagnoser): Generator<TocItem> {
     for (const navPoint of navPoints) {
-        const label = navPoint.navLabel?.[0]?.text?.[0]?.["#text"]
+        const label = navPoint.navLabel?.[0]?.text?.[0]?.['#text']
         if (label == undefined) {
             diags.push({
-                message: `navPoints navPoint is missing label`,
+                message: 'navPoints navPoint is missing label',
                 data: navPoint,
             })
             continue
@@ -365,7 +365,7 @@ function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, d
         const src = navPoint.content?.[0]?.['@src']
         if (src == undefined) {
             diags.push({
-                message: `navPoints navPoint is missing content src`,
+                message: 'navPoints navPoint is missing content src',
                 data: navPoint,
             })
             continue
@@ -384,10 +384,10 @@ function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, d
 
 function* pageListIterator(pageTargets: Unvalidated<PageTarget>[], diags: Diagnoser): Generator<TocItem> {
     for (const pageTarget of pageTargets) {
-        const label = pageTarget.navLabel?.[0]?.text?.[0]?.["#text"]
+        const label = pageTarget.navLabel?.[0]?.text?.[0]?.['#text']
         if (label == undefined) {
             diags.push({
-                message: `pageList pageTarget is missing label`,
+                message: 'pageList pageTarget is missing label',
                 data: pageTarget,
             })
             continue
@@ -395,7 +395,7 @@ function* pageListIterator(pageTargets: Unvalidated<PageTarget>[], diags: Diagno
         const src = pageTarget.content?.[0]?.['@src']
         if (src == undefined) {
             diags.push({
-                message: `pageList pageTarget is missing content src`,
+                message: 'pageList pageTarget is missing content src',
                 data: pageTarget,
             })
             continue
@@ -412,7 +412,7 @@ async function getNavToc(document: Unvalidated<PackageDocument>, loadItem: ItemL
     const manifestItems = document.package?.[0]?.manifest?.[0]?.item
     if (manifestItems == undefined) {
         diags.push({
-            message: `package is missing manifest items`,
+            message: 'package is missing manifest items',
             data: document,
         })
         return undefined
@@ -424,13 +424,13 @@ async function getNavToc(document: Unvalidated<PackageDocument>, loadItem: ItemL
     const loaded = await loadItem(tocItem)
     if (loaded == undefined) {
         diags.push({
-            message: `failed to load nav item`,
+            message: 'failed to load nav item',
             data: tocItem,
         })
         return undefined
     } else if (typeof loaded.content !== 'string') {
         diags.push({
-            message: `nav item content is not a string`,
+            message: 'nav item content is not a string',
             data: loaded,
         })
         return undefined
@@ -438,7 +438,7 @@ async function getNavToc(document: Unvalidated<PackageDocument>, loadItem: ItemL
     const parsed: Unvalidated<NavDocument> | undefined = parseXml(loaded.content, diags.scope('nav'))
     if (parsed == undefined) {
         diags.push({
-            message: `failed to parse nav item content`,
+            message: 'failed to parse nav item content',
             data: loaded,
         })
         return undefined
@@ -450,17 +450,17 @@ function navToc(document: Unvalidated<NavDocument>, diags: Diagnoser): Toc | und
     const nav = document?.html?.[0]?.body?.[0]?.nav?.[0]
     if (nav === undefined) {
         diags.push({
-            message: `nav is missing`,
+            message: 'nav is missing',
             data: document,
         })
         return undefined
     }
     const headerElement = nav.h1 ?? nav.h2 ?? nav.h3 ?? nav.h4 ?? nav.h5 ?? nav.h6
-    const title = headerElement?.[0]?.["#text"]
+    const title = headerElement?.[0]?.['#text']
     const ol = nav.ol
     if (ol === undefined) {
         diags.push({
-            message: `nav is missing ol`,
+            message: 'nav is missing ol',
             data: nav,
         })
         return undefined
@@ -479,7 +479,7 @@ function* olIterator(lis: Unvalidated<NavOl>[], level: number, diags: Diagnoser)
         const anchor = li[0]?.a?.[0]
         if (anchor == undefined) {
             diags.push({
-                message: `nav ol li is missing anchor`,
+                message: 'nav ol li is missing anchor',
                 data: li,
             })
             continue
@@ -487,14 +487,14 @@ function* olIterator(lis: Unvalidated<NavOl>[], level: number, diags: Diagnoser)
         const { '@href': href, '#text': label } = anchor
         if (href == undefined) {
             diags.push({
-                message: `nav ol li is missing href`,
+                message: 'nav ol li is missing href',
                 data: li,
             })
             continue
         }
         if (label == undefined) {
             diags.push({
-                message: `nav ol li is missing label`,
+                message: 'nav ol li is missing label',
                 data: li,
             })
             continue
