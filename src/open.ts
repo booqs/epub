@@ -2,7 +2,7 @@ import { Diagnoser, diagnoser } from './diagnostic'
 import { loadContainerDocument } from './parse'
 import { FileProvider, getBasePath, loadXml } from './file'
 import {
-    ContainerDocument, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated,
+    ContainerDocument, EpubMetadata, EpubMetadataItem, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated,
 } from './model'
 import { getRootfiles, loadManifestItem } from './package'
 import { parseXml } from './xml'
@@ -63,8 +63,8 @@ async function* packageIterator(container: Unvalidated<ContainerDocument>, fileP
 function openPackage(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
     return {
         document,
-        metadata(): Record<string, string[]> {
-            return getPackageMetadata(document, diags)
+        metadata(): EpubMetadata {
+            return buildEpubMetadata(document, diags)
         },
         items() {
             return manifestIterator(document, loadItem, diags)
@@ -217,25 +217,18 @@ function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLo
     }
 }
 
-function getPackageMetadata(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
-    const result: Record<string, string[]> = {}
-    const metadatas = document.package?.[0]?.metadata
-    if (metadatas == undefined || metadatas.length == 0) {
+function buildEpubMetadata(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
+    const result: EpubMetadata = {}
+    const [metadata] = document.package?.[0]?.metadata ?? []
+    if (metadata == undefined) {
         diags.push({
             message: 'package is missing metadata',
             data: document,
         })
         return result
     }
-    if (metadatas.length > 1) {
-        diags.push({
-            message: 'package has multiple metadata',
-            data: document,
-        })
-        return result
-    }
-    const { meta, ...metadata } = metadatas[0]
-    for (const [key, value] of Object.entries(metadata)) {
+    const { meta, ...rest } = metadata
+    for (const [key, value] of Object.entries(rest)) {
         if (!Array.isArray(value)) {
             diags.push({
                 message: 'package metadata is not an array',
@@ -243,25 +236,20 @@ function getPackageMetadata(document: Unvalidated<PackageDocument>, diags: Diagn
             })
             continue
         }
-        const values = value
-            .map(v => v['#text'])
-            .filter((v): v is string => {
-                if (v === undefined) {
-                    diags.push(`package metadata is missing text: ${key}: ${value}`)
-                }
-                return v !== undefined
-            })
-        result[key] = values
+        result[key] = value
     }
     for (const m of (meta ?? [])) {
         const { '@name': name, '@content': content } = (m as Opf2Meta)
         if (name === undefined || content === undefined) {
             continue
         }
+        const item: EpubMetadataItem = {
+            '#text': content,
+        }
         if (result[name] !== undefined) {
-            result[name].push(content)
+            result[name].push(item)
         } else {
-            result[name] = [content]
+            result[name] = [item]
         }
     }
     return result

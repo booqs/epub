@@ -27,20 +27,20 @@ export type Validated<T> =
     T
     ;
 
-export type Attributes = {
-    [Attr in `@${string}`]?: string;
-}
-
-export type BinaryType = unknown
-
 export type Xml = XmlContainer
 export type XmlNode = XmlContainer | XmlText
-export type XmlContainer = {
-    [key in string]?: XmlNode[];
+export type XmlAttributes = {
+    [Attr in `@${string}`]?: string;
 }
 export type XmlText = {
     '#text': string,
 }
+export type XmlContainer = {
+    [key in string]?: XmlNode[];
+}
+
+export type BinaryType = unknown
+
 // TODO: change to better type
 export type Html = {
     html: HtmlNode,
@@ -144,3 +144,6 @@ export type TocItem = {
     href: string,
     level: number,
 }
+
+export type EpubMetadataItem = Record<string, string> 
+export type EpubMetadata = Record<string, EpubMetadataItem[]>

@@ -3,6 +3,7 @@ import { loadXml, FileProvider, getBasePath, pathRelativeTo } from './file'
 import { ContainerDocument, ManifestItem, Package, PackageDocument, PackageItem, Unvalidated } from './model'
 import { parseXml } from './xml'
 
+// TODO: move to open.ts
 export function getRootfiles(container: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): string[] {
     const rootfiles = container?.container?.[0]?.rootfiles?.[0]?.rootfile
     if (!rootfiles) {
@@ -22,6 +23,7 @@ export function getRootfiles(container: Unvalidated<ContainerDocument> | undefin
     })
 }
 
+// TODO: remove this completely?
 export async function loadPackages(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<Package>[]> {
     const rootfiles = getRootfiles(container, diags)
     const packageOrUndefineds = rootfiles.map(async p => {
@@ -120,6 +122,7 @@ export async function loadManifestItems(document: Unvalidated<PackageDocument>, 
     return items
 }
 
+// TODO: move to open.ts
 export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<PackageItem | undefined> {
     diags = diags.scope(`manifest item: ${item['@id']}`)
     const href = item['@href']
