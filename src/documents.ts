@@ -21,7 +21,7 @@ type DocumentData<Content> = {
     fullPath: string,
     content: Unvalidated<Content>,
 }
-export function documentLoader(fileProvider: FileProvider, diags: Diagnoser) {
+export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser) {
     const loaders: {
         [Key in keyof Documents]: () => Promise<DocumentData<Unvalidated<Documents[Key]>> | undefined>
     } = {
