@@ -1,7 +1,7 @@
 import { Diagnoser } from './diagnostic'
 import { FileProvider, getBasePath } from './file'
 import { ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument, Unvalidated, Xml } from './model'
-import { loadManifestItem } from './package'
+import { loadManifestItem } from './manifest'
 import { lazy } from './utils'
 import { parseXml } from './xml'
 

@@ -3,7 +3,7 @@ import { FileProvider, getBasePath } from './file'
 import {
     ManifestItem, PackageDocument, Unvalidated,
 } from './model'
-import { loadManifestItem, manifestItemForHref, manifestItemForId } from './package'
+import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
 import { lazy } from './utils'
 import { epubDocumentLoader } from './documents'
 import { extractTocFromNav, extractTocFromNcx } from './toc'

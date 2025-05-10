@@ -58,7 +58,7 @@ export type HtmlNode = {
 export type FullEpub = {
     mimetype: 'application/epub+zip',
     container: ContainerDocument,
-    packages: Package[],
+    package: Package,
     encryption?: EncryptionDocument,
     manifest?: ManifestDocument,
     metadata?: MetadataDocument,

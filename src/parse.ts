@@ -1,7 +1,8 @@
-import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, RightsDocument, SignaturesDocument, Unvalidated } from './model'
+import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated } from './model'
 import { Diagnoser, diagnoser } from './diagnostic'
-import { FileProvider, loadOptionalXml, loadXml } from './file'
-import { loadPackages } from './package'
+import { FileProvider, getBasePath, loadOptionalXml, loadXml } from './file'
+import { loadManifestItem } from './manifest'
+import { parseXml } from './xml'
 
 export async function parseEpub(fileProvider: FileProvider, diags?: Diagnoser): Promise<Unvalidated<FullEpub> | undefined> {
     diags = diags ?? diagnoser('parseEpub')
@@ -10,7 +11,7 @@ export async function parseEpub(fileProvider: FileProvider, diags?: Diagnoser): 
     if (container == undefined) {
         return undefined
     }
-    const packages = await loadPackages(container, fileProvider, diags)
+    const pkg = await loadPackage(container, fileProvider, diags)
     const encryption = await loadEncryptionDocument(fileProvider, diags)
     const manifest = await loadManifestDocument(fileProvider, diags)
     const metadata = await loadMetadataDocument(fileProvider, diags)
@@ -19,7 +20,7 @@ export async function parseEpub(fileProvider: FileProvider, diags?: Diagnoser): 
     return {
         mimetype,
         container,
-        packages,
+        package: pkg,
         encryption,
         manifest,
         metadata,
@@ -60,5 +61,96 @@ export async function loadMimetype(fileProvider: FileProvider, diags: Diagnoser)
         })
     }
     return mimetype
+}
+
+export async function loadPackage(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<Package> | undefined> {
+    const [rootfile] = container?.container?.[0]?.rootfiles?.[0]?.rootfile ?? []
+    const fullPath = rootfile?.['@full-path']
+    if (fullPath == undefined) {
+        diags.push({
+            message: 'container is missing rootfile full path',
+            data: container,
+        })
+        return undefined
+    }
+    const document: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
+    if (document == undefined) {
+        diags.push(`${fullPath} package is missing`)
+        return undefined
+    }
+    const result: Unvalidated<Package> = { fullPath, document }
+    const items = await loadManifestItems(document, fullPath, fileProvider, diags)
+    result.items = items
+    const spine: PackageItem[] = []
+    const spineElement = document?.package?.[0]?.spine?.[0]
+    const itemrefs = spineElement?.itemref
+    if (!itemrefs) {
+        diags.push({
+            message: 'package is missing spine',
+            data: document,
+        })
+    } else {
+        for (const itemref of itemrefs) {
+            const idref = itemref['@idref']
+            if (idref == undefined) {
+                diags.push('spine itemref is missing @idref')
+                continue
+            }
+            const item = items.find(i => i.item['@id'] == idref)
+            if (item == undefined) {
+                diags.push(`spine itemref @idref ${idref} does not match any manifest item`)
+                continue
+            }
+            spine.push(item)
+        }
+        result.spine = spine
+        const tocId = spineElement?.['@toc']
+        if (tocId) {
+            const ncx = items.find(i => i.item['@id'] == tocId)
+            if (!ncx) {
+                diags.push(`spine @toc ${tocId} does not match any manifest item`)
+            } else if (typeof ncx.content !== 'string') {
+                diags.push(`spine @toc ${tocId} is not a string`)
+            } else {
+                const parsed = parseXml(ncx.content, diags)
+                if (parsed == undefined) {
+                    diags.push(`failed to parse spine @toc ${tocId}`)
+                } else {
+                    result.ncx = parsed
+                }
+            }
+        }
+    }
+    const nav = items.find(i => i.item['@properties']?.includes('nav'))
+    if (nav) {
+        if (typeof nav.content !== 'string') {
+            diags.push('nav is not a text file')
+        } else {
+            const parsed = parseXml(nav.content, diags)
+            if (parsed == undefined) {
+                diags.push('failed to parse nav')
+            } else {
+                result.nav = parsed
+            }
+        }
+    }
+    return result
+}
+
+async function loadManifestItems(document: Unvalidated<PackageDocument>, documentPath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<PackageItem[]> {
+    const item = document?.package?.[0]?.manifest?.[0]?.item
+    if (item == undefined) {
+        diags.push({
+            message: 'package is missing manifest items',
+            data: document,
+        })
+        return []
+    }
+    const base = getBasePath(documentPath)
+    const itemOrUndefineds = item.map(i => loadManifestItem(i, base, fileProvider, diags))
+    const items = (await Promise.all(itemOrUndefineds)).filter((i): i is PackageItem => {
+        return i !== undefined
+    })
+    return items
 }
 
