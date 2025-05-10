@@ -1,10 +1,11 @@
 import fs from 'fs'
 import path from 'path'
-import { FullEpub, parseEpub, Unvalidated } from './index'
+import { parseEpub, Unvalidated } from './index'
 import util, { inspect } from 'util'
 import { Diagnostic, diagnoser } from './diagnostic'
 import { validateEpub } from './validate'
 import { createFileProvider } from './mock'
+import { FullEpub } from './parse'
 
 main()
 function main() {

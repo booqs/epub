@@ -1,8 +1,28 @@
-import { ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, Package, PackageDocument, PackageItem, RightsDocument, SignaturesDocument, Unvalidated } from './model'
+import { Unvalidated } from './model'
 import { Diagnoser, diagnoser } from './diagnostic'
 import { FileProvider, getBasePath, loadOptionalXml, loadXml } from './file'
-import { loadManifestItem } from './manifest'
+import { loadManifestItem, PackageItem } from './manifest'
 import { parseXml } from './xml'
+import { ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument } from './model'
+
+export type Package = {
+    fullPath: string,
+    document: PackageDocument,
+    items: PackageItem[],
+    spine: PackageItem[],
+    ncx?: NcxDocument,
+    nav?: NavDocument,
+}
+export type FullEpub = {
+    mimetype: 'application/epub+zip',
+    container: ContainerDocument,
+    package: Package,
+    encryption?: EncryptionDocument,
+    manifest?: ManifestDocument,
+    metadata?: MetadataDocument,
+    rights?: RightsDocument,
+    signatures?: SignaturesDocument,
+}
 
 export async function parseEpub(fileProvider: FileProvider, diags?: Diagnoser): Promise<Unvalidated<FullEpub> | undefined> {
     diags = diags ?? diagnoser('parseEpub')

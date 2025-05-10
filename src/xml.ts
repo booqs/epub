@@ -1,6 +1,31 @@
 import { XMLParser } from 'fast-xml-parser'
-import { Html, Xml } from './model'
 import { Diagnoser } from './diagnostic'
+
+export type Xml = XmlContainer
+export type XmlNode = XmlContainer | XmlText
+export type XmlAttributes = {
+    [Attr in `@${string}`]?: string;
+}
+export type XmlText = {
+    '#text': string,
+}
+export type XmlContainer = {
+    [key in string]?: XmlNode[];
+}
+
+// TODO: change to better type
+export type Html = {
+    html: HtmlNode,
+}
+export type HtmlNode = {
+    [key in string]?: HtmlNode[];
+} & {
+    attrs: {
+        [key in string]?: string;
+    };
+} | {
+    '#text': string,
+}
 
 export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undefined {
     if (xml === undefined) {

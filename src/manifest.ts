@@ -1,6 +1,59 @@
 import { Diagnoser } from './diagnostic'
 import { FileProvider, pathRelativeTo } from './file'
-import { ManifestItem, PackageDocument, PackageItem, Unvalidated } from './model'
+import { PackageDocument, Unvalidated } from './model'
+
+export type BinaryType = unknown
+
+export const knownTextItems = [
+    'application/xhtml+xml', 'application/x-dtbncx+xml',
+    'text/css',
+] as const
+export const knownBinaryItems = [
+    'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml',
+    'application/x-font-ttf',
+] as const
+export const knownManifestItemMediaTypes = [
+    ...knownTextItems, ...knownBinaryItems,
+] as const
+export type TextItemMediaType = typeof knownTextItems[number]
+export type BinaryItemMediaType = typeof knownBinaryItems[number]
+export type ManifestItemMediaType = TextItemMediaType | BinaryItemMediaType
+
+export type PackageManifest = {
+    '@id'?: string,
+    item: ManifestItem[],
+}
+export type ManifestItem = {
+    '@id': string,
+    '@href': string,
+    '@media-type': ManifestItemMediaType,
+    '@fallback'?: string,
+    '@properties'?: string,
+    '@media-overlay'?: string,
+}
+
+export type PackageItem = TextItem | BinaryItem | UnknownItem
+export type TextItem = {
+    item: Unvalidated<ManifestItem>,
+    mediaType: TextItemMediaType,
+    kind: 'text',
+    content: string,
+    fullPath: string,
+}
+export type BinaryItem = {
+    item: Unvalidated<ManifestItem>,
+    mediaType: BinaryItemMediaType,
+    kind: 'binary',
+    content: BinaryType,
+    fullPath: string,
+}
+export type UnknownItem = {
+    item: Unvalidated<ManifestItem>,
+    mediaType: string | undefined,
+    kind: 'unknown',
+    content: BinaryType,
+    fullPath: string,
+}
 
 export function  manifestItemForHref(packageDocument: Unvalidated<PackageDocument>, href: string, diags: Diagnoser): Unvalidated<ManifestItem> | undefined {
     const manifestItem = packageDocument.package?.[0]?.manifest?.[0]?.item?.find(i => i['@href'] == href)

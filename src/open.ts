@@ -1,9 +1,10 @@
 import { Diagnoser, diagnoser } from './diagnostic'
 import { FileProvider, getBasePath } from './file'
 import {
-    ManifestItem, PackageDocument, Unvalidated,
+    PackageDocument,
+    Unvalidated,
 } from './model'
-import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
+import { loadManifestItem, ManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
 import { lazy } from './utils'
 import { epubDocumentLoader } from './documents'
 import { extractTocFromNav, extractTocFromNcx } from './toc'
