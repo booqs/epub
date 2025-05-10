@@ -1,9 +1,10 @@
 import { Diagnoser } from './diagnostic'
-import { Opf2Meta, PackageDocument, Unvalidated } from './model'
+import { Opf2Meta, PackageDocument } from './model'
+import { UnvalidatedXml } from './xml'
 
 export type EpubMetadataItem = Record<string, string> 
 export type EpubMetadata = Record<string, EpubMetadataItem[]>
-export function extractMetadata(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
+export function extractMetadata(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser) {
     const result: EpubMetadata = {}
     const [metadata] = document.package?.[0]?.metadata ?? []
     if (metadata == undefined) {
@@ -25,7 +26,7 @@ export function extractMetadata(document: Unvalidated<PackageDocument>, diags: D
         result[key] = value
     }
     for (const m of (meta ?? [])) {
-        const { '@name': name, '@content': content } = (m as Unvalidated<Opf2Meta>)
+        const { '@name': name, '@content': content } = (m as UnvalidatedXml<Opf2Meta>)
         if (name === undefined || content === undefined) {
             continue
         }

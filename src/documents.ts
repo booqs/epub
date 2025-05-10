@@ -1,9 +1,9 @@
 import { Diagnoser } from './diagnostic'
 import { FileProvider, getBasePath } from './file'
-import { ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument, Unvalidated } from './model'
+import { ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument } from './model'
 import { loadManifestItem } from './manifest'
 import { lazy } from './utils'
-import { parseXml } from './xml'
+import { parseXml, UnvalidatedXml, XmlNode, Unvalidated } from './xml'
 
 export type Documents = {
     mimetype: 'application/epub+zip',
@@ -19,7 +19,7 @@ export type Documents = {
 }
 type DocumentData<Content> = {
     fullPath: string,
-    content: Unvalidated<Content>,
+    content: Content extends XmlNode ? UnvalidatedXml<Content> : Unvalidated<Content>,
 }
 export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser) {
     const loaders: {
@@ -86,7 +86,7 @@ async function loadMimetypeData(fileProvider: FileProvider, diags: Diagnoser) {
     }
 }
 
-async function loadPackageData(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser) {
+async function loadPackageData(container: UnvalidatedXml<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser) {
     const [rootfile] = container?.container?.[0]?.rootfiles?.[0]?.rootfile ?? []
     if (!rootfile) {
         diags.push({
@@ -107,7 +107,7 @@ async function loadPackageData(container: Unvalidated<ContainerDocument>, filePr
     return loadXmlData<PackageDocument>(fileProvider, fullPath, false, diags)
 }
 
-async function loadNavData(document: Unvalidated<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<DocumentData<NavDocument> | undefined> {
+async function loadNavData(document: UnvalidatedXml<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<DocumentData<NavDocument> | undefined> {
     const manifestItems = document.package?.[0]?.manifest?.[0]?.item
     if (manifestItems == undefined) {
         diags.push({
@@ -134,7 +134,7 @@ async function loadNavData(document: Unvalidated<PackageDocument>, packageBasePa
         })
         return undefined
     }
-    const parsed: Unvalidated<NavDocument> | undefined = parseXml(loaded.content, diags.scope('nav')) as Unvalidated<NavDocument>
+    const parsed = parseXml(loaded.content, diags.scope('nav'))
     if (parsed === undefined) {
         diags.push({
             message: 'failed to parse nav item content',
@@ -148,7 +148,7 @@ async function loadNavData(document: Unvalidated<PackageDocument>, packageBasePa
     }
 }
 
-async function loadNcxData(document: Unvalidated<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<DocumentData<NcxDocument> | undefined> {
+async function loadNcxData(document: UnvalidatedXml<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<DocumentData<NcxDocument> | undefined> {
     const ncxId = document?.package?.[0].spine?.[0]?.['@toc']
     if (ncxId == undefined) {
         return undefined
@@ -168,7 +168,7 @@ async function loadNcxData(document: Unvalidated<PackageDocument>, packageBasePa
         diags.push('ncx content is not a string')
         return undefined
     }
-    const parsed: Unvalidated<NcxDocument> | undefined = parseXml(ncxContent, diags.scope('ncx')) as Unvalidated<NcxDocument>
+    const parsed = parseXml(ncxContent, diags.scope('ncx'))
     if (parsed == undefined) {
         diags.push('failed to parse ncx content')
         return undefined
@@ -179,7 +179,7 @@ async function loadNcxData(document: Unvalidated<PackageDocument>, packageBasePa
     }
 }
 
-async function loadXmlData<T>(fileProvider: FileProvider, fullPath: string, optional: boolean, diags: Diagnoser): Promise<DocumentData<T> | undefined> {
+async function loadXmlData<T extends XmlNode>(fileProvider: FileProvider, fullPath: string, optional: boolean, diags: Diagnoser): Promise<DocumentData<T> | undefined> {
     const xmlFile = await fileProvider.readText(fullPath, diags)
     if (xmlFile == undefined) {
         if (!optional) {
@@ -194,7 +194,7 @@ async function loadXmlData<T>(fileProvider: FileProvider, fullPath: string, opti
     } else {
         return {
             fullPath,
-            content: xml as Unvalidated<T>,
-        }
+            content: xml,
+        } as DocumentData<T>
     }
 }

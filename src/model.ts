@@ -90,25 +90,6 @@ export type BinaryItemMediaType =
     | 'image/png' | 'image/jpeg' | 'image/gif' | 'image/svg+xml'
     | 'application/x-font-ttf'
 export type ManifestItemMediaType = TextItemMediaType | BinaryItemMediaType
-export type PackageItem = TextItem | BinaryItem | UnknownItem
-export type TextItem = {
-    item: Unvalidated<ManifestItem>,
-    mediaType: TextItemMediaType,
-    kind: 'text',
-    content: string,
-}
-export type BinaryItem = {
-    item: Unvalidated<ManifestItem>,
-    mediaType: BinaryItemMediaType,
-    kind: 'binary',
-    content: BinaryType,
-}
-export type UnknownItem = {
-    item: Unvalidated<ManifestItem>,
-    mediaType: string | undefined,
-    kind: 'unknown',
-    content: BinaryType,
-}
 
 export type PackageSpine = {
     '@id'?: string,
@@ -231,27 +212,6 @@ type NcxText = {
 }
 
 // ======Common & Utility Types======
-export type Unvalidated<T> =
-    T extends Array<infer U> ? Unvalidated<U>[] :
-    T extends object ? {
-        [P in keyof T]?: Unvalidated<T[P]>;
-    } :
-    T extends string ? string :
-    T extends number ? number :
-    T extends boolean ? boolean :
-    T
-    ;
-
-export type Validated<T> =
-    T extends Array<infer U> ? Validated<U>[] :
-    T extends object ? {
-        [P in keyof T]: Validated<T[P]>;
-    } :
-    T extends string ? T :
-    T extends number ? T :
-    T extends boolean ? T :
-    T
-    ;
 
 export type LinkMediaType = string
 export type Language = string // TODO: define this better

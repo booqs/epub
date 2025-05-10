@@ -1,5 +1,6 @@
 import { Diagnoser } from './diagnostic'
-import { NavDocument, NavOl, NavPoint, NcxDocument, PageTarget, Unvalidated } from './model'
+import { NavDocument, NavOl, NavPoint, NcxDocument, PageTarget } from './model'
+import { UnvalidatedXml } from './xml'
 
 export type TocItem = {
     label: string,
@@ -10,7 +11,7 @@ export type Toc = {
     title?: string,
     items: TocItem[],
 }
-export function extractTocFromNcx(ncx: Unvalidated<NcxDocument>, diags: Diagnoser): Toc | undefined {
+export function extractTocFromNcx(ncx: UnvalidatedXml<NcxDocument>, diags: Diagnoser): Toc | undefined {
     const navMap = ncx.ncx?.[0]?.navMap
     if (navMap == undefined || navMap.length == 0) {
         const pageLists = ncx.ncx?.[0]?.pageList
@@ -63,7 +64,7 @@ export function extractTocFromNcx(ncx: Unvalidated<NcxDocument>, diags: Diagnose
     }
 }
 
-function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, diags: Diagnoser): Generator<TocItem> {
+function* navPointsIterator(navPoints: UnvalidatedXml<NavPoint>[], level: number, diags: Diagnoser): Generator<TocItem> {
     for (const navPoint of navPoints) {
         const label = navPoint.navLabel?.[0]?.text?.[0]?.['#text']
         if (label == undefined) {
@@ -93,7 +94,7 @@ function* navPointsIterator(navPoints: Unvalidated<NavPoint>[], level: number, d
     }
 }
 
-function* pageListIterator(pageTargets: Unvalidated<PageTarget>[], diags: Diagnoser): Generator<TocItem> {
+function* pageListIterator(pageTargets: UnvalidatedXml<PageTarget>[], diags: Diagnoser): Generator<TocItem> {
     for (const pageTarget of pageTargets) {
         const label = pageTarget.navLabel?.[0]?.text?.[0]?.['#text']
         if (label == undefined) {
@@ -119,7 +120,7 @@ function* pageListIterator(pageTargets: Unvalidated<PageTarget>[], diags: Diagno
     }
 }
 
-export function extractTocFromNav(document: Unvalidated<NavDocument>, diags: Diagnoser): Toc | undefined {
+export function extractTocFromNav(document: UnvalidatedXml<NavDocument>, diags: Diagnoser): Toc | undefined {
     const nav = document?.html?.[0]?.body?.[0]?.nav?.[0]
     if (nav === undefined) {
         diags.push({
@@ -144,7 +145,7 @@ export function extractTocFromNav(document: Unvalidated<NavDocument>, diags: Dia
     }
 }
 
-function* olIterator(lis: Unvalidated<NavOl>[], level: number, diags: Diagnoser): Generator<TocItem> {
+function* olIterator(lis: UnvalidatedXml<NavOl>[], level: number, diags: Diagnoser): Generator<TocItem> {
     for (const { li } of lis) {
         if (li == undefined) {
             continue

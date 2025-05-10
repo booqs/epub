@@ -8,9 +8,22 @@ export type XmlAttributes = {
 export type XmlText = {
     '#text'?: string | undefined,
 }
+export type FirstSymbol = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z' | '_'
 export type XmlContainer = {
-    [key in string]: XmlNode[];
+    [key in `${FirstSymbol}${string}`]: XmlNode[];
 }
+
+export type UnvalidatedXml<Shape extends XmlNode> = Unvalidated<Shape> & XmlNode
+export type Unvalidated<T> =
+    T extends Array<infer U> ? Unvalidated<U>[] :
+    T extends object ? {
+        [P in keyof T]?: Unvalidated<T[P]>;
+    } :
+    T extends string ? string :
+    T extends number ? number :
+    T extends boolean ? boolean :
+    T
+    ;
 
 // TODO: change to better type
 export type Html = {

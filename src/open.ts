@@ -1,14 +1,12 @@
 import { Diagnoser, diagnoser } from './diagnostic'
 import { FileProvider, getBasePath } from './file'
-import {
-    PackageDocument,
-    Unvalidated,
-} from './model'
-import { loadManifestItem, ManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
+import { ManifestItem, PackageDocument } from './model'
+import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
 import { lazy } from './utils'
 import { epubDocumentLoader } from './documents'
 import { extractTocFromNav, extractTocFromNcx } from './toc'
 import { extractMetadata } from './metadata'
+import { UnvalidatedXml } from './xml'
 
 export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     const diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
@@ -20,7 +18,7 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
         }
         return getBasePath(fullPath)
     })
-    async function loadItem(item: Unvalidated<ManifestItem>) {
+    async function loadItem(item: UnvalidatedXml<ManifestItem>) {
         const basePath = await packageBasePath()
         if (basePath == undefined) {
             return undefined
@@ -88,7 +86,7 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     }
 }
 
-function extractManifestItems(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
+function extractManifestItems(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser) {
     const items = document.package?.[0]?.manifest?.[0]?.item
     if (items == undefined) {
         diags.push({
@@ -100,7 +98,7 @@ function extractManifestItems(document: Unvalidated<PackageDocument>, diags: Dia
     return items
 }
 
-function extractSpine(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
+function extractSpine(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser) {
     const spineItems = document.package?.[0]?.spine?.[0]?.itemref
     if (spineItems == undefined) {
         diags.push({
