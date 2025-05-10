@@ -50,11 +50,11 @@ export async function parseEpub(fileProvider: FileProvider, diags?: Diagnoser): 
 }
 
 export async function loadContainerDocument(fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<ContainerDocument> | undefined> {
-    return loadXml(fileProvider, 'META-INF/container.xml', diags)
+    return loadXml(fileProvider, 'META-INF/container.xml', diags) as Unvalidated<ContainerDocument>
 }
 
 export async function loadEncryptionDocument(fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<EncryptionDocument> | undefined> {
-    return loadOptionalXml(fileProvider, 'META-INF/encryption.xml', diags)
+    return loadOptionalXml(fileProvider, 'META-INF/encryption.xml', diags) as Unvalidated<EncryptionDocument> | undefined
 }
 
 export async function loadManifestDocument(fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<ManifestDocument> | undefined> {
@@ -62,15 +62,15 @@ export async function loadManifestDocument(fileProvider: FileProvider, diags: Di
 }
 
 export async function loadMetadataDocument(fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<MetadataDocument> | undefined> {
-    return loadOptionalXml(fileProvider, 'META-INF/metadata.xml', diags)
+    return loadOptionalXml(fileProvider, 'META-INF/metadata.xml', diags) as Unvalidated<MetadataDocument> | undefined
 }
 
 export async function loadRightsDocument(fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<RightsDocument> | undefined> {
-    return loadOptionalXml(fileProvider, 'META-INF/rights.xml', diags)
+    return loadOptionalXml(fileProvider, 'META-INF/rights.xml', diags) as Unvalidated<RightsDocument> | undefined
 }
 
 export async function loadSignaturesDocument(fileProvider: FileProvider, diags: Diagnoser): Promise<Unvalidated<SignaturesDocument> | undefined> {
-    return loadOptionalXml(fileProvider, 'META-INF/signatures.xml', diags)
+    return loadOptionalXml(fileProvider, 'META-INF/signatures.xml', diags) as Unvalidated<SignaturesDocument> | undefined
 }
 
 export async function loadMimetype(fileProvider: FileProvider, diags: Diagnoser): Promise<string | undefined> {
@@ -93,7 +93,7 @@ export async function loadPackage(container: Unvalidated<ContainerDocument>, fil
         })
         return undefined
     }
-    const document: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
+    const document: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags) as Unvalidated<PackageDocument> | undefined
     if (document == undefined) {
         diags.push(`${fullPath} package is missing`)
         return undefined
@@ -136,7 +136,7 @@ export async function loadPackage(container: Unvalidated<ContainerDocument>, fil
                 if (parsed == undefined) {
                     diags.push(`failed to parse spine @toc ${tocId}`)
                 } else {
-                    result.ncx = parsed
+                    result.ncx = parsed as Unvalidated<NcxDocument>
                 }
             }
         }
@@ -150,7 +150,7 @@ export async function loadPackage(container: Unvalidated<ContainerDocument>, fil
             if (parsed == undefined) {
                 diags.push('failed to parse nav')
             } else {
-                result.nav = parsed
+                result.nav = parsed as Unvalidated<NavDocument>
             }
         }
     }

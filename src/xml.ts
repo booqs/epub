@@ -1,16 +1,15 @@
 import { XMLParser } from 'fast-xml-parser'
 import { Diagnoser } from './diagnostic'
 
-export type Xml = XmlContainer
-export type XmlNode = XmlContainer | XmlText
+export type XmlNode = XmlText & XmlAttributes & XmlContainer
 export type XmlAttributes = {
     [Attr in `@${string}`]?: string;
 }
 export type XmlText = {
-    '#text': string,
+    '#text'?: string | undefined,
 }
 export type XmlContainer = {
-    [key in string]?: XmlNode[];
+    [key: string]: XmlNode[];
 }
 
 // TODO: change to better type
@@ -24,10 +23,10 @@ export type HtmlNode = {
         [key in string]?: string;
     };
 } | {
-    '#text': string,
+    '#text'?: string,
 }
 
-export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undefined {
+export function parseXml(xml: string | undefined, diags: Diagnoser): XmlNode | undefined {
     if (xml === undefined) {
         diags.push('XML is undefined')
         return undefined
@@ -45,7 +44,7 @@ export function parseXml(xml: string | undefined, diags: Diagnoser): Xml | undef
         },
     })
     try {
-        const fast: Xml = parser.parse(xml)
+        const fast: XmlNode = parser.parse(xml)
         return fast
     } catch (e) {
         diags.push({

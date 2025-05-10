@@ -1,5 +1,5 @@
 import { Diagnoser, diagnoser } from './diagnostic'
-import { Xml, parseXml } from './xml'
+import { XmlNode, parseXml } from './xml'
 
 // TODO: move to model
 export type FileProvider = {
@@ -21,7 +21,7 @@ export function pathRelativeTo(base: string, path: string): string {
     return base + path
 }
 
-export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnoser): Promise<Xml | undefined> {
+export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnoser): Promise<XmlNode | undefined> {
     const xmlFile = await fileProvider.readText(path, diags)
     if (xmlFile == undefined) {
         diags.push(`${path} is missing`)
@@ -36,7 +36,7 @@ export async function loadXml(fileProvider: FileProvider, path: string, diags: D
     }
 }
 
-export async function loadOptionalXml(fileProvider: FileProvider, path: string, diags: Diagnoser): Promise<Xml | undefined> {
+export async function loadOptionalXml(fileProvider: FileProvider, path: string, diags: Diagnoser): Promise<XmlNode | undefined> {
     const xmlFile = await fileProvider.readText(path, diagnoser('ignore'))
     if (xmlFile == undefined) {
         return undefined
