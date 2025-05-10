@@ -1,9 +1,9 @@
 import { Diagnoser, diagnoser } from './diagnostic'
 import { FileProvider, getBasePath } from './file'
 import {
-    EpubMetadata, EpubMetadataItem, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated,
+    EpubMetadata, EpubMetadataItem, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PageTarget, TocItem, Unvalidated,
 } from './model'
-import { loadManifestItem } from './package'
+import { loadManifestItem, manifestItemForHref, manifestItemForId } from './package'
 import { lazy } from './utils'
 import { epubDocumentLoader } from './documents'
 
@@ -26,50 +26,40 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     }
 
     return {
-        documents,
-        async metadata(): Promise<EpubMetadata> {
+        metadata: lazy(async () => {
             const {content} = await documents('package') ?? {}
             return content
-                ? buildEpubMetadata(content, diags)
+                ? extractMetadata(content, diags)
                 : {}
-        },
-        async items() {
-            const {content} = await documents('package') ?? {}
-            return content
-                ? manifestIterator(content, loadItem, diags)
-                : []
-        },
-        async spine() {
-            const { content } = await documents('package') ?? {}
-            return content
-                ? spineIterator(content, loadItem, diags)
-                : []
-        },
+        }),
+        documents,
         loadItem,
         async itemForHref(href: string) {
             const { content } = await documents('package') ?? {}
             if (content == undefined) {
                 return undefined
             }
-            const manifestItem = content.package?.[0]?.manifest?.[0]?.item?.find(i => i['@href'] == href)
-            if (manifestItem == undefined) {
-                diags.push(`failed to find manifest item for href: ${href}`)
-                return undefined
-            }
-            return manifestItem
+            return manifestItemForHref(content, href, diags)
         },
         async itemForId(id: string) {
             const {content} = await documents('package') ?? {}
             if (content == undefined) {
                 return undefined
             }
-            const manifestItem = content.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == id)
-            if (manifestItem == undefined) {
-                diags.push(`failed to find manifest item for id: ${id}`)
-                return undefined
-            }
-            return loadItem(manifestItem)
+            return manifestItemForId(content, id, diags)
         },
+        manifest: lazy(async () => {
+            const {content} = await documents('package') ?? {}
+            return content
+                ? extractManifestItems(content, diags)
+                : []
+        }),
+        spine: lazy(async () => {
+            const { content } = await documents('package') ?? {}
+            return content
+                ? extractSpine(content, diags)
+                : []
+        }),
         toc: lazy(async () => {
             const {content} = await documents('package') ?? {}
             if (content == undefined) {
@@ -95,89 +85,48 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     }
 }
 
-type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
-function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
-    const itemTag = document.package?.[0]?.manifest?.[0]?.item
-    if (itemTag == undefined) {
+function extractManifestItems(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
+    const items = document.package?.[0]?.manifest?.[0]?.item
+    if (items == undefined) {
         diags.push({
             message: 'package is missing manifest items',
             data: document,
         })
         return
     }
-    const items = itemTag
-    for (const item of items) {
-        yield {
-            item,
-            properties() {
-                const properties = item['@properties']
-                if (properties == undefined) {
-                    return []
-                }
-                return properties.split(' ')
-            },
-            async load() {
-                const loaded = await loadItem(item)
-                if (loaded === undefined) {
-                    diags.push({
-                        message: 'failed to load manifest item',
-                        data: item,
-                    })
-                    return undefined
-                }
-                return loaded
-            }
-        }
-    }
+    return items
 }
 
-function* spineIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
-    const itemTag = document.package?.[0]?.spine?.[0]?.itemref
-    if (itemTag == undefined) {
+function extractSpine(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
+    const spineItems = document.package?.[0]?.spine?.[0]?.itemref
+    if (spineItems == undefined) {
         diags.push({
             message: 'package is missing spine items',
             data: document,
         })
         return
     }
-    const items = itemTag
-    for (const item of items) {
-        const idref = item['@idref']
+    return spineItems.map(spineItem => {
+        const idref = spineItem['@idref']
         if (idref == undefined) {
             diags.push({
                 message: 'spine item is missing idref',
-                data: item,
+                data: spineItem,
             })
-            continue
+            return undefined
         }
-        const manifestItemOpt = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == idref)
-        if (manifestItemOpt == undefined) {
-            diags.push({
-                message: 'spine item is not in manifest',
-                data: item,
-            })
-            continue
+        const manifestItem = manifestItemForId(document, idref, diags)
+        if (manifestItem == undefined) {
+            return undefined
         }
-        const manifestItem = manifestItemOpt
-        yield {
-            item,
+        return {
+            spineItem,
             manifestItem,
-            async load() {
-                const loaded = await loadItem(manifestItem)
-                if (loaded === undefined) {
-                    diags.push({
-                        message: 'failed to load manifest item',
-                        data: manifestItem,
-                    })
-                    return undefined
-                }
-                return loaded
-            }
         }
-    }
+    }).filter(i => i !== undefined)
 }
 
-function buildEpubMetadata(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
+function extractMetadata(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
     const result: EpubMetadata = {}
     const [metadata] = document.package?.[0]?.metadata ?? []
     if (metadata == undefined) {

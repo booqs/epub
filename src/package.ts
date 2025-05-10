@@ -3,6 +3,23 @@ import { loadXml, FileProvider, getBasePath, pathRelativeTo } from './file'
 import { ContainerDocument, ManifestItem, Package, PackageDocument, PackageItem, Unvalidated } from './model'
 import { parseXml } from './xml'
 
+export function  manifestItemForHref(packageDocument: Unvalidated<PackageDocument>, href: string, diags: Diagnoser): Unvalidated<ManifestItem> | undefined {
+    const manifestItem = packageDocument.package?.[0]?.manifest?.[0]?.item?.find(i => i['@href'] == href)
+    if (manifestItem == undefined) {
+        diags.push(`failed to find manifest item for href: ${href}`)
+        return undefined
+    }
+    return manifestItem
+}
+export function manifestItemForId(packageDocument: Unvalidated<PackageDocument>, id: string, diags: Diagnoser): Unvalidated<ManifestItem> | undefined {
+    const manifestItem = packageDocument.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == id)
+    if (manifestItem == undefined) {
+        diags.push(`failed to find manifest item for id: ${id}`)
+        return undefined
+    }
+    return manifestItem
+}
+
 // TODO: move to open.ts
 export function getRootfiles(container: Unvalidated<ContainerDocument> | undefined, diags: Diagnoser): string[] {
     const rootfiles = container?.container?.[0]?.rootfiles?.[0]?.rootfile
