@@ -1,12 +1,13 @@
 import { Diagnoser, diagnoser } from './diagnostic'
 import { FileProvider, getBasePath } from './file'
 import {
-    EpubMetadata, EpubMetadataItem, ManifestItem, Opf2Meta, PackageDocument, Unvalidated,
+    ManifestItem, PackageDocument, Unvalidated,
 } from './model'
 import { loadManifestItem, manifestItemForHref, manifestItemForId } from './package'
 import { lazy } from './utils'
 import { epubDocumentLoader } from './documents'
 import { extractTocFromNav, extractTocFromNcx } from './toc'
+import { extractMetadata } from './metadata'
 
 export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     const diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
@@ -125,42 +126,4 @@ function extractSpine(document: Unvalidated<PackageDocument>, diags: Diagnoser) 
             manifestItem,
         }
     }).filter(i => i !== undefined)
-}
-
-function extractMetadata(document: Unvalidated<PackageDocument>, diags: Diagnoser) {
-    const result: EpubMetadata = {}
-    const [metadata] = document.package?.[0]?.metadata ?? []
-    if (metadata == undefined) {
-        diags.push({
-            message: 'package is missing metadata',
-            data: document,
-        })
-        return result
-    }
-    const { meta, ...rest } = metadata
-    for (const [key, value] of Object.entries(rest)) {
-        if (!Array.isArray(value)) {
-            diags.push({
-                message: 'package metadata is not an array',
-                data: value,
-            })
-            continue
-        }
-        result[key] = value
-    }
-    for (const m of (meta ?? [])) {
-        const { '@name': name, '@content': content } = (m as Opf2Meta)
-        if (name === undefined || content === undefined) {
-            continue
-        }
-        const item: EpubMetadataItem = {
-            '#text': content,
-        }
-        if (result[name] !== undefined) {
-            result[name].push(item)
-        } else {
-            result[name] = [item]
-        }
-    }
-    return result
 }

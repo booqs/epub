@@ -141,6 +141,3 @@ export type UnknownItem = {
     content: BinaryType,
     fullPath: string,
 }
-
-export type EpubMetadataItem = Record<string, string> 
-export type EpubMetadata = Record<string, EpubMetadataItem[]>
