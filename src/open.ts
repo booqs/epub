@@ -1,64 +1,71 @@
 import { Diagnoser, diagnoser } from './diagnostic'
-import { loadContainerDocument } from './parse'
 import { FileProvider, getBasePath, loadXml } from './file'
 import {
     ContainerDocument, EpubMetadata, EpubMetadataItem, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated,
 } from './model'
-import { getRootfiles, loadManifestItem } from './package'
+import { loadManifestItem } from './package'
 import { parseXml } from './xml'
+import { lazy } from './utils'
 
 export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     const diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
-    let _container: Promise<Unvalidated<ContainerDocument> | undefined> | undefined
-    function getContainer() {
-        if (_container == undefined) {
-            _container = loadContainerDocument(fileProvider, diags)
+    const container = lazy(() => loadXml(fileProvider, 'META-INF/container.xml', diags))
+    const packageData = lazy(async () => {
+        const containerDocument = await container()
+        if (containerDocument == undefined) {
+            return undefined
         }
-        return _container
-    }
-    async function container() {
-        const document = await getContainer()
+        const fullPath = getPackageFullpah(containerDocument, diags)
+        if (fullPath == undefined) {
+            return undefined
+        }
+        const document: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
         if (document == undefined) {
-            diags.push('container.xml is missing')
+            diags.push(`${fullPath} package is missing`)
+            return undefined
         }
-        return document
-    }
-    async function* packages() {
-        const container = await getContainer()
-        if (container == undefined) {
-            diags.push('failed to load container.xml')
-        } else {
-            yield* packageIterator(container, fileProvider, diags)
-        }
-    }
+        const basePath = getBasePath(fullPath)
+        return { fullPath, basePath, document }
+    })
 
     return {
         container,
-        packages,
+        package: lazy(async () => {
+            const data = await packageData()
+            if (data == undefined) {
+                diags.push('failed to load package')
+                return undefined
+            }
+            const { fullPath, basePath, document } = data
+            return {
+                fullPath, basePath,
+                ...openPackage(document, item => loadManifestItem(item, basePath, fileProvider, diags), diags),
+            }
+        }),
         diagnostics() {
             return diags.all()
         },
     }
 }
 
-export type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
-async function* packageIterator(container: Unvalidated<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser) {
-    const rootfiles = getRootfiles(container, diags)
-    for (const fullPath of rootfiles) {
-        const document: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
-        if (document == undefined) {
-            diags.push(`${fullPath} package is missing`)
-            continue
-        }
-        const basePath = getBasePath(fullPath)
-        const loadItem: ItemLoader = item => loadManifestItem(item, basePath, fileProvider, diags)
-        yield {
-            fullPath,
-            basePath,
-            ...openPackage(document, loadItem, diags),
-        }
+function getPackageFullpah(container: Unvalidated<ContainerDocument>, diags: Diagnoser) {
+    const [rootfile] = container?.container?.[0]?.rootfiles?.[0]?.rootfile ?? []
+    if (!rootfile) {
+        diags.push({
+            message: 'container is missing rootfile',
+            data: container
+        })
+        return undefined
     }
+    const fullPath = rootfile['@full-path']
+    if (fullPath == undefined) {
+        diags.push('rootfile is missing @full-path')
+        return undefined
+    }
+    return fullPath
 }
+
+export type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
 
 function openPackage(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
     return {
