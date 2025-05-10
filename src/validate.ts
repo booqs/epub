@@ -2,14 +2,14 @@ import { z } from 'zod'
 import { Diagnoser, diagnoser } from './diagnostic'
 import {
     ContainerDocument, EncryptionDocument, FullEpub, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, Package, PackageDocument,
-    PackageItem, RightsDocument, SignaturesDocument, Unvalidated,
+    RightsDocument, SignaturesDocument, Unvalidated,
 } from './model'
 import { containerDocument, navDocument, ncxDocument, packageDocument } from './schema'
 
 export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser): FullEpub | undefined {
     const diags = optDiags?.scope('epub validation') ?? diagnoser('epub validation')
     const {
-        container, packages,
+        container, package: pkg,
         mimetype,
         encryption,
         signatures,
@@ -26,35 +26,7 @@ export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser):
     if (!validateContainerDocument(container, diags)) {
         return undefined
     }
-    const validatedPackages: Package[] = []
-    for (const pkg of packages ?? []) {
-        const document = pkg.document
-        if (!validatePackageDocument(document, diags)) {
-            return undefined
-        }
-        if (pkg.ncx) {
-            if (!validateNcxDocument(pkg.ncx, diags)) {
-                return undefined
-            }
-        }
-        if (pkg.nav) {
-            if (!validateNavDocument(pkg.nav, diags)) {
-                return undefined
-            }
-        }
-        const items = pkg.items as PackageItem[] ?? []
-        const spine = pkg.spine as PackageItem[] ?? []
-        validatedPackages.push({
-            fullPath: pkg.fullPath as string,
-            document,
-            spine,
-            items,
-            ncx: pkg.ncx,
-            nav: pkg.nav,
-        })
-    }
-    if (validatedPackages.length !== packages?.length) {
-        diags.push('failed to validate some packages')
+    if (!validatePackage(pkg, diags)) {
         return undefined
     }
     if (mimetype !== 'application/epub+zip') {
@@ -71,8 +43,31 @@ export function validateEpub(epub: Unvalidated<FullEpub>, optDiags?: Diagnoser):
         rights: rights as RightsDocument,
         mimetype,
         container,
-        packages: validatedPackages,
+        package: pkg,
     }
+}
+
+export function validatePackage(pkg: Unvalidated<Package> | undefined, diags: Diagnoser): pkg is Package {
+    if (pkg == undefined) {
+        diags.push({
+            message: 'missing package document',
+        })
+        return false
+    }
+    if (!validatePackageDocument(pkg.document, diags)) {
+        return false
+    }
+    if (pkg.ncx) {
+        if (!validateNcxDocument(pkg.ncx, diags)) {
+            return false
+        }
+    }
+    if (pkg.nav) {
+        if (!validateNavDocument(pkg.nav, diags)) {
+            return false
+        }
+    }
+    return true
 }
 
 export const validateContainerDocument = makeValidator(containerDocument, 'container')
