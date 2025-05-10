@@ -23,7 +23,7 @@ type DocumentData<Content> = {
 }
 export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser) {
     const loaders: {
-        [Key in keyof Documents]: () => Promise<DocumentData<Unvalidated<Documents[Key]>> | undefined>
+        [Key in keyof Documents]: () => Promise<DocumentData<Documents[Key]> | undefined>
     } = {
         mimetype: lazy(() => loadMimetypeData(fileProvider, diags)),
         container: lazy(() => 
@@ -65,7 +65,7 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser)
             return loadNcxData(packageData.content, packageBasePath, fileProvider, diags)
         }),
     }
-    return async function<Key extends keyof Documents>(key: Key): Promise<DocumentData<Unvalidated<Documents[Key]>> | undefined> {
+    return async function<Key extends keyof Documents>(key: Key): Promise<DocumentData<Documents[Key]> | undefined> {
         return loaders[key]()
     }
 }
