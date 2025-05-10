@@ -142,11 +142,5 @@ export type UnknownItem = {
     fullPath: string,
 }
 
-export type TocItem = {
-    label: string,
-    href: string,
-    level: number,
-}
-
 export type EpubMetadataItem = Record<string, string> 
 export type EpubMetadata = Record<string, EpubMetadataItem[]>
