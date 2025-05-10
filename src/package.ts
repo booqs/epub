@@ -146,6 +146,7 @@ export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath
             mediaType,
             kind: 'text',
             content,
+            fullPath,
         }
     }
     case 'application/x-font-ttf':
@@ -161,6 +162,7 @@ export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath
             mediaType,
             kind: 'binary',
             content,
+            fullPath,
         }
     }
     default: {
@@ -175,6 +177,7 @@ export async function loadManifestItem(item: Unvalidated<ManifestItem>, basePath
             mediaType,
             kind: 'unknown',
             content,
+            fullPath,
         }
     }
     }

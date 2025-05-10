@@ -125,18 +125,21 @@ export type TextItem = {
     mediaType: TextItemMediaType,
     kind: 'text',
     content: string,
+    fullPath: string,
 }
 export type BinaryItem = {
     item: Unvalidated<ManifestItem>,
     mediaType: BinaryItemMediaType,
     kind: 'binary',
     content: BinaryType,
+    fullPath: string,
 }
 export type UnknownItem = {
     item: Unvalidated<ManifestItem>,
     mediaType: string | undefined,
     kind: 'unknown',
     content: BinaryType,
+    fullPath: string,
 }
 
 export type TocItem = {

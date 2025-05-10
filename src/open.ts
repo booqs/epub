@@ -1,45 +1,101 @@
 import { Diagnoser, diagnoser } from './diagnostic'
-import { FileProvider, getBasePath, loadXml } from './file'
+import { FileProvider, getBasePath } from './file'
 import {
-    ContainerDocument, EpubMetadata, EpubMetadataItem, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated,
+    EpubMetadata, EpubMetadataItem, ManifestItem, NavDocument, NavOl, NavPoint, NcxDocument, Opf2Meta, PackageDocument, PackageItem, PageTarget, TocItem, Unvalidated,
 } from './model'
 import { loadManifestItem } from './package'
-import { parseXml } from './xml'
 import { lazy } from './utils'
+import { documentLoader } from './documents'
 
 export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     const diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
-    const container = lazy(() => loadXml(fileProvider, 'META-INF/container.xml', diags))
-    const packageData = lazy(async () => {
-        const containerDocument = await container()
-        if (containerDocument == undefined) {
-            return undefined
-        }
-        const fullPath = getPackageFullpah(containerDocument, diags)
-        if (fullPath == undefined) {
-            return undefined
-        }
-        const document: Unvalidated<PackageDocument> | undefined = await loadXml(fileProvider, fullPath, diags)
-        if (document == undefined) {
-            diags.push(`${fullPath} package is missing`)
-            return undefined
-        }
-        const basePath = getBasePath(fullPath)
-        return { fullPath, basePath, document }
-    })
+    const documents = documentLoader(fileProvider, diags)
 
     return {
-        container,
+        documents,
         package: lazy(async () => {
-            const data = await packageData()
+            const data = await documents('package')
             if (data == undefined) {
                 diags.push('failed to load package')
                 return undefined
             }
-            const { fullPath, basePath, document } = data
+            const { fullPath, content } = data
+            const basePath = getBasePath(fullPath)
+            function loadItem(item: Unvalidated<ManifestItem>) {
+                return loadManifestItem(item, basePath, fileProvider, diags)
+            }
             return {
                 fullPath, basePath,
-                ...openPackage(document, item => loadManifestItem(item, basePath, fileProvider, diags), diags),
+                metadata(): EpubMetadata {
+                    return buildEpubMetadata(content, diags)
+                },
+                items() {
+                    return manifestIterator(content, loadItem, diags)
+                },
+                itemsForProperty: function* (property: string) {
+                    for (const item of manifestIterator(content, loadItem, diags)) {
+                        if (item.properties().includes(property)) {
+                            yield item
+                        }
+                    }
+                },
+                spine() {
+                    return spineIterator(content, loadItem, diags)
+                },
+                loadHref(ref: string) {
+                    const manifestItem = content.package?.[0]?.manifest?.[0]?.item?.find(i => i['@href'] == ref)
+                    if (manifestItem == undefined) {
+                        diags.push(`failed to find manifest item for href: ${ref}`)
+                        return undefined
+                    }
+                    return loadItem(manifestItem)
+                },
+                loadId(id: string) {
+                    const manifestItem = content.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == id)
+                    if (manifestItem == undefined) {
+                        diags.push(`failed to find manifest item for id: ${id}`)
+                        return undefined
+                    }
+                    return loadItem(manifestItem)
+                },
+                async ncx() {
+                    const optNcxDocument = await documents('ncx')
+                    if (optNcxDocument == undefined) {
+                        return undefined
+                    }
+                    const ncxDocument = optNcxDocument.content
+                    return {
+                        document: ncxDocument,
+                        toc() {
+                            return ncxToc(ncxDocument, diags)
+                        },
+                    }
+                },
+                async nav() {
+                    const optNavDocument = await documents('nav')
+                    if (optNavDocument == undefined) {
+                        return undefined
+                    }
+                    const navDocument = optNavDocument.content
+                    return {
+                        document: navDocument,
+                        toc() {
+                            return navToc(navDocument, diags)
+                        },
+                    }
+                },
+                async toc(): Promise<Toc | undefined> {
+                    const optNavDocument = await documents('nav')
+                    if (optNavDocument != undefined) {
+                        return navToc(optNavDocument.content, diags)
+                    }
+                    const optNcxDocument = await documents('ncx')
+                    if (optNcxDocument != undefined) {
+                        return ncxToc(optNcxDocument.content, diags)
+                    }
+                    diags.push('failed to find ncx or nav toc')
+                    return undefined
+                },
             }
         }),
         diagnostics() {
@@ -48,100 +104,7 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     }
 }
 
-function getPackageFullpah(container: Unvalidated<ContainerDocument>, diags: Diagnoser) {
-    const [rootfile] = container?.container?.[0]?.rootfiles?.[0]?.rootfile ?? []
-    if (!rootfile) {
-        diags.push({
-            message: 'container is missing rootfile',
-            data: container
-        })
-        return undefined
-    }
-    const fullPath = rootfile['@full-path']
-    if (fullPath == undefined) {
-        diags.push('rootfile is missing @full-path')
-        return undefined
-    }
-    return fullPath
-}
-
 export type ItemLoader = (item: Unvalidated<ManifestItem>) => Promise<PackageItem | undefined>
-
-function openPackage(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
-    return {
-        document,
-        metadata(): EpubMetadata {
-            return buildEpubMetadata(document, diags)
-        },
-        items() {
-            return manifestIterator(document, loadItem, diags)
-        },
-        itemsForProperty: function* (property: string) {
-            for (const item of manifestIterator(document, loadItem, diags)) {
-                if (item.properties().includes(property)) {
-                    yield item
-                }
-            }
-        },
-        spine() {
-            return spineIterator(document, loadItem, diags)
-        },
-        loadHref(ref: string) {
-            const manifestItem = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@href'] == ref)
-            if (manifestItem == undefined) {
-                diags.push(`failed to find manifest item for href: ${ref}`)
-                return undefined
-            }
-            return loadItem(manifestItem)
-        },
-        loadId(id: string) {
-            const manifestItem = document.package?.[0]?.manifest?.[0]?.item?.find(i => i['@id'] == id)
-            if (manifestItem == undefined) {
-                diags.push(`failed to find manifest item for id: ${id}`)
-                return undefined
-            }
-            return loadItem(manifestItem)
-        },
-        async ncx() {
-            const optNcxDocument = await getNcx(document, loadItem, diags)
-            if (optNcxDocument == undefined) {
-                return undefined
-            }
-            const ncxDocument = optNcxDocument
-            return {
-                document: ncxDocument,
-                toc() {
-                    return ncxToc(ncxDocument, diags)
-                },
-            }
-        },
-        async nav() {
-            const optNavDocument = await getNavToc(document, loadItem, diags)
-            if (optNavDocument == undefined) {
-                return undefined
-            }
-            const navDocument = optNavDocument
-            return {
-                document: navDocument,
-                toc() {
-                    return navToc(navDocument, diags)
-                },
-            }
-        },
-        async toc(): Promise<Toc | undefined> {
-            const optNavDocument = await getNavToc(document, loadItem, diags)
-            if (optNavDocument != undefined) {
-                return navToc(optNavDocument, diags)
-            }
-            const optNcxDocument = await getNcx(document, loadItem, diags)
-            if (optNcxDocument != undefined) {
-                return ncxToc(optNcxDocument, diags)
-            }
-            diags.push('failed to find ncx or nav toc')
-            return undefined
-        },
-    }
-}
 
 function* manifestIterator(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
     const itemTag = document.package?.[0]?.manifest?.[0]?.item
@@ -262,34 +225,6 @@ function buildEpubMetadata(document: Unvalidated<PackageDocument>, diags: Diagno
     return result
 }
 
-async function getNcx(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
-    const ncxId = document?.package?.[0].spine?.[0]?.['@toc']
-    if (ncxId == undefined) {
-        return undefined
-    }
-    const item = document?.package?.[0].manifest?.[0]?.item?.find(i => i['@id'] === ncxId)
-    if (item == undefined) {
-        diags.push(`failed to find manifest ncx item for id: ${ncxId}`)
-        return undefined
-    }
-    const ncxItem = await loadItem(item)
-    if (ncxItem == undefined) {
-        diags.push(`failed to load ncx item for id: ${ncxId}`)
-        return undefined
-    }
-    const ncxContent = ncxItem.content
-    if (typeof ncxContent !== 'string') {
-        diags.push('ncx content is not a string')
-        return undefined
-    }
-    const parsed: Unvalidated<NcxDocument> | undefined = parseXml(ncxContent, diags.scope('ncx'))
-    if (parsed == undefined) {
-        diags.push('failed to parse ncx content')
-        return undefined
-    }
-    return parsed
-}
-
 type Toc = {
     title?: string,
     items: Generator<TocItem>,
@@ -401,44 +336,6 @@ function* pageListIterator(pageTargets: Unvalidated<PageTarget>[], diags: Diagno
             level: 0,
         }
     }
-}
-
-async function getNavToc(document: Unvalidated<PackageDocument>, loadItem: ItemLoader, diags: Diagnoser) {
-    const manifestItems = document.package?.[0]?.manifest?.[0]?.item
-    if (manifestItems == undefined) {
-        diags.push({
-            message: 'package is missing manifest items',
-            data: document,
-        })
-        return undefined
-    }
-    const tocItem = manifestItems.find(i => i['@properties']?.includes('nav'))
-    if (tocItem == undefined) {
-        return undefined
-    }
-    const loaded = await loadItem(tocItem)
-    if (loaded == undefined) {
-        diags.push({
-            message: 'failed to load nav item',
-            data: tocItem,
-        })
-        return undefined
-    } else if (typeof loaded.content !== 'string') {
-        diags.push({
-            message: 'nav item content is not a string',
-            data: loaded,
-        })
-        return undefined
-    }
-    const parsed: Unvalidated<NavDocument> | undefined = parseXml(loaded.content, diags.scope('nav'))
-    if (parsed == undefined) {
-        diags.push({
-            message: 'failed to parse nav item content',
-            data: loaded,
-        })
-        return undefined
-    }
-    return parsed
 }
 
 function navToc(document: Unvalidated<NavDocument>, diags: Diagnoser): Toc | undefined {

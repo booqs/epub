@@ -2,11 +2,13 @@ import { Xml } from './model'
 import { Diagnoser, diagnoser } from './diagnostic'
 import { parseXml } from './xml'
 
+// TODO: move to model
 export type FileProvider = {
     readText(path: string, diags: Diagnoser): Promise<string | undefined>,
     readBinary(path: string, diags: Diagnoser): Promise<unknown | undefined>,
 }
 
+// TODO: move to utils
 export function getBasePath(path: string): string {
     const index = path.lastIndexOf('/')
     if (index == -1) {
