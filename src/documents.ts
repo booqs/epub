@@ -3,7 +3,7 @@ import { FileProvider, getBasePath } from './file'
 import { ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument, Unvalidated } from './model'
 import { loadManifestItem } from './manifest'
 import { lazy } from './utils'
-import { XmlNode, parseXml } from './xml'
+import { parseXml } from './xml'
 
 export type Documents = {
     mimetype: 'application/epub+zip',
@@ -27,13 +27,13 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser)
     } = {
         mimetype: lazy(() => loadMimetypeData(fileProvider, diags)),
         container: lazy(() => 
-            loadXmlData(fileProvider, 'META-INF/container.xml', false, diags) as Promise<DocumentData<ContainerDocument>>
+            loadXmlData(fileProvider, 'META-INF/container.xml', false, diags)
         ),
         encryption: lazy(() =>
-            loadXmlData(fileProvider, 'META-INF/encryption.xml', true, diags) as Promise<DocumentData<EncryptionDocument>>
+            loadXmlData(fileProvider, 'META-INF/encryption.xml', true, diags)
         ),
         signatures: lazy(() =>
-            loadXmlData(fileProvider, 'META-INF/signatures.xml', true, diags) as Promise<DocumentData<SignaturesDocument>>
+            loadXmlData(fileProvider, 'META-INF/signatures.xml', true, diags)
         ),
         manifest: lazy(() => loadXmlData(fileProvider, 'META-INF/manifest.xml', true, diags)),
         metadata: lazy(() => loadXmlData(fileProvider, 'META-INF/metadata.xml', true, diags)),
@@ -44,7 +44,7 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser)
                 diags.push('container is missing')
                 return undefined
             }
-            return loadPackageData(containerData.content, fileProvider, diags) as Promise<DocumentData<PackageDocument>>
+            return loadPackageData(containerData.content, fileProvider, diags)
         }),
         nav: lazy(async () => {
             const packageData = await loaders.package()
@@ -104,7 +104,7 @@ async function loadPackageData(container: Unvalidated<ContainerDocument>, filePr
         diags.push('container is missing package full path')
         return undefined
     }
-    return loadXmlData(fileProvider, fullPath, false, diags)
+    return loadXmlData<PackageDocument>(fileProvider, fullPath, false, diags)
 }
 
 async function loadNavData(document: Unvalidated<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<DocumentData<NavDocument> | undefined> {
@@ -179,7 +179,7 @@ async function loadNcxData(document: Unvalidated<PackageDocument>, packageBasePa
     }
 }
 
-async function loadXmlData(fileProvider: FileProvider, fullPath: string, optional: boolean, diags: Diagnoser): Promise<DocumentData<XmlNode> | undefined> {
+async function loadXmlData<T>(fileProvider: FileProvider, fullPath: string, optional: boolean, diags: Diagnoser): Promise<DocumentData<T> | undefined> {
     const xmlFile = await fileProvider.readText(fullPath, diags)
     if (xmlFile == undefined) {
         if (!optional) {
@@ -194,7 +194,7 @@ async function loadXmlData(fileProvider: FileProvider, fullPath: string, optiona
     } else {
         return {
             fullPath,
-            content: xml,
+            content: xml as Unvalidated<T>,
         }
     }
 }

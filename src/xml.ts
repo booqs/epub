@@ -8,8 +8,9 @@ export type XmlAttributes = {
 export type XmlText = {
     '#text'?: string | undefined,
 }
+type FirstSymbol = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z' | '_'
 export type XmlContainer = {
-    [key: string]: XmlNode[];
+    [key in `${FirstSymbol}${string}`]: XmlNode[];
 }
 
 // TODO: change to better type
@@ -23,7 +24,7 @@ export type HtmlNode = {
         [key in string]?: string;
     };
 } | {
-    '#text'?: string,
+    '#text': string,
 }
 
 export function parseXml(xml: string | undefined, diags: Diagnoser): XmlNode | undefined {
