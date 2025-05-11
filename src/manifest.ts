@@ -3,22 +3,22 @@ import { BinaryItemMediaType, ManifestItem, PackageDocument, TextItemMediaType }
 import { pathRelativeTo, scoped } from './utils'
 import { UnvalidatedXml } from './xml'
 
-export type PackageItem<Binary> = TextItem | BinaryItem<Binary> | UnknownItem<Binary>
-export type TextItem = {
+export type LoadedManifestItem<Binary> = LoadedManifestItemText | LoadedManifestItemBinary<Binary> | LoadedManifestItemUnknown<Binary>
+export type LoadedManifestItemText = {
     item: UnvalidatedXml<ManifestItem>,
     mediaType: TextItemMediaType,
     kind: 'text',
     content: string,
     fullPath: string,
 }
-export type BinaryItem<Binary> = {
+export type LoadedManifestItemBinary<Binary> = {
     item: UnvalidatedXml<ManifestItem>,
     mediaType: BinaryItemMediaType,
     kind: 'binary',
     content: Binary,
     fullPath: string,
 }
-export type UnknownItem<Binary> = {
+export type LoadedManifestItemUnknown<Binary> = {
     item: UnvalidatedXml<ManifestItem>,
     mediaType: string | undefined,
     kind: 'unknown',
@@ -43,7 +43,7 @@ export function manifestItemForId(packageDocument: UnvalidatedXml<PackageDocumen
     return manifestItem
 }
 
-export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem>, basePath: string, fileProvider: FileProvider<Binary>, diags?: Diagnoser): Promise<PackageItem<Binary> | undefined> {
+export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem>, basePath: string, fileProvider: FileProvider<Binary>, diags?: Diagnoser): Promise<LoadedManifestItem<Binary> | undefined> {
     diags = diags && scoped(diags, `loadManifestItem: href=${item['@href']}`)
     const href = item['@href']
     if (href == undefined) {
