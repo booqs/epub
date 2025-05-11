@@ -1,4 +1,4 @@
-import { Diagnoser } from './common'
+import { Diagnoser, Diagnostic } from './common'
 
 export function lazy<T>(fn: () => T): () => T {
     let stored: {value: T} | undefined
@@ -27,11 +27,37 @@ export function resolveHref(basePath: string, href: string): string {
 }
 
 export function scoped(diagnoser: Diagnoser, label: string): Diagnoser {
-    const scoped: Diagnoser = []
-    diagnoser.push({
-        message: `Scope: ${label}`,
-        severity: 'info',
-        inner: scoped,
-    })
-    return scoped
+    const inner: Diagnostic[] = []
+    const scope: Diagnostic = {
+        label,
+        inner,
+    }
+    diagnoser.push(scope)
+    return inner
+}
+
+export function flattenDiags(diags: Diagnoser): Diagnoser {
+    const flattened: Diagnoser = []
+    for (const diag of diags) {
+        if (typeof diag == 'string') {
+            flattened.push(diag)
+        } else if ('label' in diag) {
+            flattened.push(...flattenDiags(diag.inner.map(d => {
+                if (typeof d == 'string') {
+                    return {
+                        message: d,
+                        scope: [diag.label],
+                    }
+                } else {
+                    return {
+                        ...d,
+                        scope: [diag.label, ...(d.scope ?? [])],
+                    }
+                }
+            })))
+        } else {
+            flattened.push(diag)
+        }
+    }
+    return flattened
 }

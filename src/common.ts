@@ -1,9 +1,18 @@
-export type Diagnostic = DiagnosticObject | string | Diagnostic[]
+export type Diagnostic = DiagnosticString | DiagnosticObject | DiagnosticScope
 export type DiagnosticObject = {
     message: string,
     data?: any,
     severity?: DiagnosticSeverity,
-    inner?: Diagnostic,
+    scope?: string[],
+}
+export type DiagnosticScope = {
+    label: string,
+    inner: Diagnostic[],
+    scope?: string[],
+}
+export type DiagnosticString = string & {
+    label?: undefined,
+    message?: undefined,
 }
 export type DiagnosticSeverity = 'error' | 'warning' | 'critical' | 'info'
 export type Diagnoser = Diagnostic[]
