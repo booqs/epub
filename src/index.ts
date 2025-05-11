@@ -1,9 +1,5 @@
 export * from './model'
-export * from './diagnostic'
-export { FileProvider } from './file'
-export { parseEpub } from './parse'
+export { FileProvider, Diagnoser, Diagnostic } from './common'
 export { openEpub } from './open'
-export {
-    validateEpub, validateContainer, validatePackageDocument,
-    validateNavDocument, validateNcxDocument,
-} from './validate'
+export { epubDocumentLoader } from './documents'
+export { XmlNode, UnvalidatedXml, Unvalidated } from './xml'

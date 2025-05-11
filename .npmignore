@@ -7,3 +7,5 @@ src
 .tsbuildinfo
 .eslintrc.js
 epubs/**/*
+.vscode/**/*
+.claude/**/*
