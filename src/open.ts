@@ -131,6 +131,7 @@ function extractCoverItem(document: UnvalidatedXml<PackageDocument>, diags: Diag
             diags.push({
                 message: 'package is missing cover item',
                 data: document,
+                severity: 'info',
             })
             return undefined
         }
