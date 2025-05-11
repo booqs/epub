@@ -137,7 +137,7 @@ export type NavDocument = {
 
 export type NavElement = {
     nav: [{
-        '@epub:type': 'toc' | 'page-list' | 'landmark',
+        '@type': 'toc' | 'page-list' | 'landmark',
         h1?: [TextNode],
         h2?: [TextNode],
         h3?: [TextNode],
@@ -164,7 +164,7 @@ export type NcxDocument = {
     ncx: [{
         '@version': string,
         '@xmlns': string,
-        '@xml:lang'?: string,
+        '@lang'?: string,
         navMap: [{
             navPoint: NavPoint[],
         }],
