@@ -22,7 +22,7 @@ export function getBasePath(path: string): string {
 export function resolveHref(basePath: string, href: string): string {
     href = href.endsWith('/')
         ? href.substring(0, href.length - 1)
-        : href + '/'
+        : href
     return basePath + href
 }
 
