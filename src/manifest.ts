@@ -1,6 +1,6 @@
 import { Diagnoser, FileProvider } from './common'
 import { BinaryItemMediaType, ManifestItem, PackageDocument, TextItemMediaType } from './model'
-import { pathRelativeTo, scoped } from './utils'
+import { resolveHref, scoped } from './utils'
 import { UnvalidatedXml } from './xml'
 
 export type LoadedManifestItem<Binary> = LoadedManifestItemText | LoadedManifestItemBinary<Binary> | LoadedManifestItemUnknown<Binary>
@@ -50,7 +50,7 @@ export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem
         diags?.push('manifest item is missing @href')
         return undefined
     }
-    const fullPath = pathRelativeTo(basePath, href)
+    const fullPath = resolveHref(basePath, href)
     const mediaType = item['@media-type']
     switch (mediaType) {
     case 'application/xhtml+xml':

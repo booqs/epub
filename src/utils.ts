@@ -19,11 +19,11 @@ export function getBasePath(path: string): string {
     }
 }
 
-export function pathRelativeTo(base: string, path: string): string {
-    path = path.endsWith('/')
-        ? path.substring(0, path.length - 1)
-        : path + '/'
-    return base + path
+export function resolveHref(basePath: string, href: string): string {
+    href = href.endsWith('/')
+        ? href.substring(0, href.length - 1)
+        : href + '/'
+    return basePath + href
 }
 
 export function scoped(diagnoser: Diagnoser, label: string): Diagnoser {

@@ -1,7 +1,7 @@
 import { Diagnoser, FileProvider } from './common'
 import { ManifestItem, PackageDocument, SpineItem } from './model'
 import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
-import { getBasePath, lazy, pathRelativeTo, scoped } from './utils'
+import { getBasePath, lazy, resolveHref, scoped } from './utils'
 import { epubDocumentLoader } from './documents'
 import { extractTocFromNav, extractTocFromNcx } from './toc'
 import { extractMetadata } from './metadata'
@@ -30,7 +30,7 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
         if (basePath == undefined) {
             return undefined
         }
-        const fullPath = pathRelativeTo(basePath, href)
+        const fullPath = resolveHref(basePath, href)
         return fileProvider.readText(fullPath, diags)
     }
     async function loadBinaryFile(href: string) {
@@ -38,7 +38,7 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
         if (basePath == undefined) {
             return undefined
         }
-        const fullPath = pathRelativeTo(basePath, href)
+        const fullPath = resolveHref(basePath, href)
         return fileProvider.readBinary(fullPath, diags)
     }
 
