@@ -2,8 +2,8 @@ import { Diagnoser } from './common'
 import { Opf2Meta, Opf3Meta, PackageDocument } from './model'
 import { UnvalidatedXml } from './xml'
 
-export type EpubMetadataItem = Record<string, string> 
-export type EpubMetadata = Record<string, EpubMetadataItem[]>
+export type EpubMetadataItem = Record<string, string | undefined> 
+export type EpubMetadata = Record<string, EpubMetadataItem[] | undefined>
 export function extractMetadata(document: UnvalidatedXml<PackageDocument>, diags?: Diagnoser) {
     const [metadata] = document.package?.[0]?.metadata ?? []
     if (metadata == undefined) {
@@ -22,7 +22,7 @@ export function extractMetadata(document: UnvalidatedXml<PackageDocument>, diags
         }
     }
     function refineMetadata(id: string, property: string, value: string) {
-        const item = Object.values(result).flat().find(i => i['@id'] == id)
+        const item = Object.values(result).flat().find(i => i?.['@id'] == id)
         if (item == undefined) {
             diags?.push({
                 message: `failed to find metadata item for id: ${id}`,
