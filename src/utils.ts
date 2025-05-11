@@ -41,7 +41,7 @@ export function flattenDiags(diags: Diagnoser): Diagnoser {
     for (const diag of diags) {
         if (typeof diag == 'string') {
             flattened.push(diag)
-        } else if ('label' in diag) {
+        } else if (diag.label != undefined) {
             flattened.push(...flattenDiags(diag.inner.map(d => {
                 if (typeof d == 'string') {
                     return {

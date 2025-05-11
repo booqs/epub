@@ -4,15 +4,24 @@ export type DiagnosticObject = {
     data?: any,
     severity?: DiagnosticSeverity,
     scope?: string[],
+    label?: undefined,
+    inner?: undefined,
 }
 export type DiagnosticScope = {
+    message?: undefined,
+    data?: undefined,
+    severity?: DiagnosticSeverity,
+    scope?: string[],
     label: string,
     inner: Diagnostic[],
-    scope?: string[],
 }
 export type DiagnosticString = string & {
-    label?: undefined,
     message?: undefined,
+    data?: undefined,
+    severity?: undefined,
+    scope?: undefined,
+    label?: undefined,
+    inner?: undefined,
 }
 export type DiagnosticSeverity = 'error' | 'warning' | 'critical' | 'info'
 export type Diagnoser = Diagnostic[]
