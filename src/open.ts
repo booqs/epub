@@ -8,7 +8,7 @@ import { extractTocFromNav, extractTocFromNcx } from './toc'
 import { extractMetadata } from './metadata'
 import { UnvalidatedXml } from './xml'
 
-export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
+export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: Diagnoser) {
     const diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
     const documents = epubDocumentLoader(fileProvider, diags)
     const packageBasePath = lazy(async () => {

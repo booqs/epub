@@ -217,6 +217,5 @@ export type LinkMediaType = string
 export type Language = string // TODO: define this better
 export type NumberString = `${number}`
 export type ContentDirection = 'auto' | 'rtl' | 'ltr' | 'default'
-export type BinaryType = unknown
 
     

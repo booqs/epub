@@ -1,10 +1,10 @@
 import { Diagnoser } from './diagnostic'
 import { FileProvider } from './common'
-import { BinaryItemMediaType, ManifestItem, PackageDocument, TextItemMediaType, BinaryType } from './model'
+import { BinaryItemMediaType, ManifestItem, PackageDocument, TextItemMediaType } from './model'
 import { pathRelativeTo } from './utils'
 import { UnvalidatedXml } from './xml'
 
-export type PackageItem = TextItem | BinaryItem | UnknownItem
+export type PackageItem<Binary> = TextItem | BinaryItem<Binary> | UnknownItem
 export type TextItem = {
     item: UnvalidatedXml<ManifestItem>,
     mediaType: TextItemMediaType,
@@ -12,18 +12,18 @@ export type TextItem = {
     content: string,
     fullPath: string,
 }
-export type BinaryItem = {
+export type BinaryItem<Binary> = {
     item: UnvalidatedXml<ManifestItem>,
     mediaType: BinaryItemMediaType,
     kind: 'binary',
-    content: BinaryType,
+    content: Binary,
     fullPath: string,
 }
 export type UnknownItem = {
     item: UnvalidatedXml<ManifestItem>,
     mediaType: string | undefined,
     kind: 'unknown',
-    content: BinaryType,
+    content: unknown,
     fullPath: string,
 }
 
@@ -44,7 +44,7 @@ export function manifestItemForId(packageDocument: UnvalidatedXml<PackageDocumen
     return manifestItem
 }
 
-export async function loadManifestItem(item: UnvalidatedXml<ManifestItem>, basePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<PackageItem | undefined> {
+export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem>, basePath: string, fileProvider: FileProvider<Binary>, diags: Diagnoser): Promise<PackageItem<Binary> | undefined> {
     diags = diags.scope(`manifest item: ${item['@id']}`)
     const href = item['@href']
     if (href == undefined) {
