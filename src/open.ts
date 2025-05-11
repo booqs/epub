@@ -49,7 +49,9 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
                 ? extractMetadata(content, diags)
                 : {}
         }),
-        documents,
+        documents() {
+            return documents
+        },
         loadItem,
         loadTextFile,
         loadBinaryFile,
