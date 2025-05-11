@@ -74,6 +74,12 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
         loadItem,
         loadTextFile,
         loadBinaryFile,
+        coverItem: lazy(async () => {
+            const {content} = await documents.package() ?? {}
+            return content
+                ? extractCoverItem(content, diags)
+                : {}
+        }),
         async itemForHref(href: string) {
             const { content } = await documents.package() ?? {}
             if (content == undefined) {
@@ -115,6 +121,38 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
             return diags
         },
     }
+}
+
+function extractCoverItem(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser) {
+    let coverItem = document.package?.[0]?.manifest?.[0]?.item?.find(item => item['@properties']?.includes('cover-image'))
+    if (coverItem == undefined) {
+        const coverMeta = document.package?.[0]?.metadata?.[0]?.meta?.find(item => item['@name'] == 'cover')
+        if (coverMeta == undefined) {
+            diags.push({
+                message: 'package is missing cover item',
+                data: document,
+            })
+            return undefined
+        }
+        const idref = coverMeta['@content']
+        if (idref == undefined) {
+            diags.push({
+                message: 'cover meta is missing content',
+                data: coverMeta,
+            })
+            return undefined
+        }
+        coverItem = document.package?.[0]?.manifest?.[0]?.item?.find(item => item['@id'] == idref)
+        if (coverItem == undefined) {
+            diags.push({
+                message: 'package is missing cover item specified by meta',
+                data: document,
+            })
+            return undefined
+        }
+    }
+    
+    return coverItem
 }
 
 function extractManifestItems(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser) {

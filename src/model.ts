@@ -68,6 +68,8 @@ export type MetadataLink = {
 export type Meta = Opf2Meta | Opf3Meta
 export type MetaProperty = string
 export type Opf3Meta = {
+    '@name'?: undefined,
+    '@content'?: undefined,
     '@property': MetaProperty,
     '@dir'?: ContentDirection,
     '@id'?: string,
