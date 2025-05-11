@@ -7,6 +7,7 @@ import { extractNavigationsFromNav, extractTocNavigationFromNcx, Navigation } fr
 import { extractMetadata } from './metadata'
 import { UnvalidatedXml } from './xml'
 
+export type Epub<Binary> = ReturnType<typeof openEpub<Binary>>
 export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: Diagnoser) {
     const diags = optDiags ? scoped(optDiags, 'openEpub') : []
     const documents = epubDocumentLoader(fileProvider, diags)
