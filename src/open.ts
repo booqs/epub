@@ -1,5 +1,5 @@
 import { Diagnoser, FileProvider } from './common'
-import { ManifestItem, PackageDocument } from './model'
+import { ManifestItem, PackageDocument, SpineItem } from './model'
 import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
 import { getBasePath, lazy, scoped } from './utils'
 import { epubDocumentLoader } from './documents'
@@ -97,14 +97,17 @@ function extractManifestItems(document: UnvalidatedXml<PackageDocument>, diags: 
     return items
 }
 
-function extractSpine(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser) {
+function extractSpine(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser): Array<{
+    spineItem: UnvalidatedXml<SpineItem>,
+    manifestItem: UnvalidatedXml<ManifestItem>,
+}> {
     const spineItems = document.package?.[0]?.spine?.[0]?.itemref
     if (spineItems == undefined) {
         diags.push({
             message: 'package is missing spine items',
             data: document,
         })
-        return
+        return []
     }
     const result = spineItems
         .map(spineItem => {
@@ -125,6 +128,6 @@ function extractSpine(document: UnvalidatedXml<PackageDocument>, diags: Diagnose
                 manifestItem,
             }
         })
-        .filter(spineItem => spineItem != undefined)
+        .filter(item => item != undefined)
     return result
 }
