@@ -121,6 +121,18 @@ function* pageListIterator(pageTargets: UnvalidatedXml<PageTarget>[], diags: Dia
 }
 
 export function extractTocFromNav(document: UnvalidatedXml<NavDocument>, diags: Diagnoser): Toc | undefined {
+    const nav = document?.html?.[0]?.body?.[0]?.nav?.find(n => n['@type'] === 'toc')
+    if (nav === undefined) {
+        diags.push({
+            message: 'nav is missing',
+            data: document,
+        })
+        return undefined
+    }
+    return extractTocFromNavElement(document, diags)
+}
+
+function extractTocFromNavElement(document: UnvalidatedXml<NavDocument>, diags: Diagnoser): Toc | undefined {
     const nav = document?.html?.[0]?.body?.[0]?.nav?.[0]
     if (nav === undefined) {
         diags.push({
