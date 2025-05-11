@@ -12,7 +12,7 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
     const diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
     const documents = epubDocumentLoader(fileProvider, diags)
     const packageBasePath = lazy(async () => {
-        const { fullPath } = await documents('package') ?? {}
+        const { fullPath } = await documents.package() ?? {}
         if (fullPath == undefined) {
             return undefined
         }
@@ -28,7 +28,7 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
 
     return {
         metadata: lazy(async () => {
-            const {content} = await documents('package') ?? {}
+            const {content} = await documents.package() ?? {}
             return content
                 ? extractMetadata(content, diags)
                 : {}
@@ -36,44 +36,44 @@ export function openEpub(fileProvider: FileProvider, optDiags?: Diagnoser) {
         documents,
         loadItem,
         async itemForHref(href: string) {
-            const { content } = await documents('package') ?? {}
+            const { content } = await documents.package() ?? {}
             if (content == undefined) {
                 return undefined
             }
             return manifestItemForHref(content, href, diags)
         },
         async itemForId(id: string) {
-            const {content} = await documents('package') ?? {}
+            const {content} = await documents.package() ?? {}
             if (content == undefined) {
                 return undefined
             }
             return manifestItemForId(content, id, diags)
         },
         manifest: lazy(async () => {
-            const {content} = await documents('package') ?? {}
+            const {content} = await documents.package() ?? {}
             return content
                 ? extractManifestItems(content, diags)
                 : []
         }),
         spine: lazy(async () => {
-            const { content } = await documents('package') ?? {}
+            const { content } = await documents.package() ?? {}
             return content
                 ? extractSpine(content, diags)
                 : []
         }),
         toc: lazy(async () => {
-            const {content} = await documents('package') ?? {}
+            const {content} = await documents.package() ?? {}
             if (content == undefined) {
                 return {
                     title: undefined,
                     items: [],
                 }
             }
-            const optNavDocument = await documents('nav')
+            const optNavDocument = await documents.nav()
             if (optNavDocument != undefined) {
                 return extractTocFromNav(optNavDocument.content, diags)
             }
-            const optNcxDocument = await documents('ncx')
+            const optNcxDocument = await documents.ncx()
             if (optNcxDocument != undefined) {
                 return extractTocFromNcx(optNcxDocument.content, diags)
             }
