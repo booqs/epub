@@ -1,5 +1,5 @@
 import { Diagnoser } from './diagnostic'
-import { FileProvider } from './file'
+import { FileProvider } from './common'
 import { BinaryItemMediaType, ManifestItem, PackageDocument, TextItemMediaType, BinaryType } from './model'
 import { pathRelativeTo } from './utils'
 import { UnvalidatedXml } from './xml'

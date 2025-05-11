@@ -1,5 +1,5 @@
 import { Diagnoser, diagnoser } from './diagnostic'
-import { FileProvider } from './file'
+import { FileProvider } from './common'
 import { ManifestItem, PackageDocument } from './model'
 import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
 import { getBasePath, lazy } from './utils'
