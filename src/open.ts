@@ -3,7 +3,7 @@ import { ManifestItem, PackageDocument, SpineItem } from './model'
 import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
 import { getBasePath, lazy, resolveHref, scoped } from './utils'
 import { epubDocumentLoader } from './documents'
-import { extractTocFromNav, extractTocFromNcx } from './toc'
+import { extractNavigationsFromNav, extractTocNavigationFromNcx, Navigation } from './toc'
 import { extractMetadata } from './metadata'
 import { UnvalidatedXml } from './xml'
 
@@ -41,6 +41,24 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
         const fullPath = resolveHref(basePath, href)
         return fileProvider.readBinary(fullPath, diags)
     }
+
+    const navigations = lazy(async () => {
+        const navigations: Navigation[] = []
+        const {content: navContent} = await documents.nav() ?? {}
+        if (navContent != undefined) {
+            navigations.push(
+                ...extractNavigationsFromNav(navContent, diags)
+            )
+        }
+        const {content: ncxContent} = await documents.ncx() ?? {}
+        if (ncxContent != undefined) {
+            const toc = extractTocNavigationFromNcx(ncxContent, diags)
+            if (toc != undefined) {
+                navigations.push(toc)
+            }
+        }
+        return navigations
+    })
 
     return {
         metadata: lazy(async () => {
@@ -81,24 +99,16 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
                 ? extractSpine(content, diags)
                 : []
         }),
+        navigations,
         toc: lazy(async () => {
-            const {content} = await documents.package() ?? {}
-            if (content == undefined) {
-                return {
-                    title: undefined,
-                    items: [],
-                }
+            const naviagations = await navigations()
+            const toc = naviagations.find(nav => nav.type == 'toc')
+            if (toc != undefined) {
+                return toc
+            } else {
+                diags.push('failed to find toc in nav or ncx')
+                return undefined
             }
-            const optNavDocument = await documents.nav()
-            if (optNavDocument != undefined) {
-                return extractTocFromNav(optNavDocument.content, diags)
-            }
-            const optNcxDocument = await documents.ncx()
-            if (optNcxDocument != undefined) {
-                return extractTocFromNcx(optNcxDocument.content, diags)
-            }
-            diags.push('failed to find nav or ncx toc')
-            return undefined
         }),
         diagnostics() {
             return diags
