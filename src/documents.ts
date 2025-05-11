@@ -1,28 +1,18 @@
 import { FileProvider, Diagnoser } from './common'
-import { ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument } from './model'
+import {
+    ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument,
+} from './model'
 import { loadManifestItem } from './manifest'
 import { getBasePath, lazy, scoped } from './utils'
 import { parseXml, UnvalidatedXml, XmlNode, Unvalidated } from './xml'
 
-export type Documents = {
-    mimetype: 'application/epub+zip',
-    container: ContainerDocument,
-    encryption: EncryptionDocument,
-    signatures: SignaturesDocument,
-    manifest: ManifestDocument,
-    metadata: MetadataDocument,
-    rights: RightsDocument,
-    package: PackageDocument,
-    ncx: NcxDocument,
-    nav: NavDocument,
-}
-type DocumentData<Content> = {
+export type DocumentData<Content> = {
     fullPath: string,
     content: Content,
 }
 export function epubDocumentLoader(fileProvider: FileProvider, diags?: Diagnoser) {
     const container = lazy(() => 
-        loadXmlData(fileProvider, 'META-INF/container.xml', false, diags)
+        loadXmlData<ContainerDocument>(fileProvider, 'META-INF/container.xml', false, diags)
     )
     const pkg = lazy(async () => {
         const containerData = await container()
@@ -38,14 +28,14 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags?: Diagnoser
         mimetype: lazy(() => loadMimetypeData(fileProvider, diags)),
         
         encryption: lazy(() =>
-            loadXmlData(fileProvider, 'META-INF/encryption.xml', true, diags)
+            loadXmlData<EncryptionDocument>(fileProvider, 'META-INF/encryption.xml', true, diags)
         ),
         signatures: lazy(() =>
-            loadXmlData(fileProvider, 'META-INF/signatures.xml', true, diags)
+            loadXmlData<SignaturesDocument>(fileProvider, 'META-INF/signatures.xml', true, diags)
         ),
-        manifest: lazy(() => loadXmlData(fileProvider, 'META-INF/manifest.xml', true, diags)),
-        metadata: lazy(() => loadXmlData(fileProvider, 'META-INF/metadata.xml', true, diags)),
-        rights: lazy(() => loadXmlData(fileProvider, 'META-INF/rights.xml', true, diags)),
+        manifest: lazy(() => loadXmlData<ManifestDocument>(fileProvider, 'META-INF/manifest.xml', true, diags)),
+        metadata: lazy(() => loadXmlData<MetadataDocument>(fileProvider, 'META-INF/metadata.xml', true, diags)),
+        rights: lazy(() => loadXmlData<RightsDocument>(fileProvider, 'META-INF/rights.xml', true, diags)),
         nav: lazy(async () => {
             const packageData = await pkg()
             if (packageData == undefined) {
@@ -68,7 +58,7 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags?: Diagnoser
 async function loadMimetypeData(fileProvider: FileProvider, diags?: Diagnoser) {
     diags = diags && scoped(diags, 'loadMimetypeData')
     const fullPath = 'mimetype'
-    const content = await fileProvider.readText(fullPath, diags) as Unvalidated<'application/epub+zip'>
+    const content: Unvalidated<'application/epub+zip'> | undefined = await fileProvider.readText(fullPath, diags)
     if (content == undefined) {
         diags?.push(`${fullPath} is missing`)
         return undefined
