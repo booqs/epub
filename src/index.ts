@@ -1,3 +1,5 @@
 export * from './model'
 export { FileProvider, Diagnoser, Diagnostic } from './common'
 export { openEpub } from './open'
+export { epubDocumentLoader } from './documents'
+export { XmlNode, UnvalidatedXml, Unvalidated } from './xml'
