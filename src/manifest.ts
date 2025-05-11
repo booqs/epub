@@ -3,7 +3,7 @@ import { BinaryItemMediaType, ManifestItem, PackageDocument, TextItemMediaType }
 import { pathRelativeTo, scoped } from './utils'
 import { UnvalidatedXml } from './xml'
 
-export type PackageItem<Binary> = TextItem | BinaryItem<Binary> | UnknownItem
+export type PackageItem<Binary> = TextItem | BinaryItem<Binary> | UnknownItem<Binary>
 export type TextItem = {
     item: UnvalidatedXml<ManifestItem>,
     mediaType: TextItemMediaType,
@@ -18,11 +18,11 @@ export type BinaryItem<Binary> = {
     content: Binary,
     fullPath: string,
 }
-export type UnknownItem = {
+export type UnknownItem<Binary> = {
     item: UnvalidatedXml<ManifestItem>,
     mediaType: string | undefined,
     kind: 'unknown',
-    content: unknown,
+    content: Binary,
     fullPath: string,
 }
 
