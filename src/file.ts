@@ -7,20 +7,6 @@ export type FileProvider = {
     readBinary(path: string, diags: Diagnoser): Promise<unknown | undefined>,
 }
 
-// TODO: move to utils
-export function getBasePath(path: string): string {
-    const index = path.lastIndexOf('/')
-    if (index == -1) {
-        return ''
-    } else {
-        return path.slice(0, index + 1)
-    }
-}
-
-export function pathRelativeTo(base: string, path: string): string {
-    return base + path
-}
-
 export async function loadXml(fileProvider: FileProvider, path: string, diags: Diagnoser): Promise<XmlNode | undefined> {
     const xmlFile = await fileProvider.readText(path, diags)
     if (xmlFile == undefined) {

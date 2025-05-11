@@ -1,6 +1,7 @@
 import { Diagnoser } from './diagnostic'
-import { FileProvider, pathRelativeTo } from './file'
+import { FileProvider } from './file'
 import { BinaryItemMediaType, ManifestItem, PackageDocument, TextItemMediaType, BinaryType } from './model'
+import { pathRelativeTo } from './utils'
 import { UnvalidatedXml } from './xml'
 
 export type PackageItem = TextItem | BinaryItem | UnknownItem
