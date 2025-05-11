@@ -20,6 +20,9 @@ export function getBasePath(path: string): string {
 }
 
 export function pathRelativeTo(base: string, path: string): string {
+    path = path.endsWith('/')
+        ? path.substring(0, path.length - 1)
+        : path + '/'
     return base + path
 }
 

@@ -50,7 +50,7 @@ export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem
         diags?.push('manifest item is missing @href')
         return undefined
     }
-    const fullPath = sanitizeHref(pathRelativeTo(basePath, href))
+    const fullPath = pathRelativeTo(basePath, href)
     const mediaType = item['@media-type']
     switch (mediaType) {
     case 'application/xhtml+xml':
@@ -100,13 +100,5 @@ export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem
             fullPath,
         }
     }
-    }
-}
-
-function sanitizeHref(href: string): string {
-    if (href.endsWith('/')) {
-        return href.substring(0, href.length - 1)
-    } else {
-        return href
     }
 }

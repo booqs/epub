@@ -1,7 +1,7 @@
 import { Diagnoser, FileProvider } from './common'
 import { ManifestItem, PackageDocument, SpineItem } from './model'
 import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
-import { getBasePath, lazy, scoped } from './utils'
+import { getBasePath, lazy, pathRelativeTo, scoped } from './utils'
 import { epubDocumentLoader } from './documents'
 import { extractTocFromNav, extractTocFromNcx } from './toc'
 import { extractMetadata } from './metadata'
@@ -10,6 +10,7 @@ import { UnvalidatedXml } from './xml'
 export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: Diagnoser) {
     const diags = optDiags ? scoped(optDiags, 'openEpub') : []
     const documents = epubDocumentLoader(fileProvider, diags)
+
     const packageBasePath = lazy(async () => {
         const { fullPath } = await documents.package() ?? {}
         if (fullPath == undefined) {
@@ -24,6 +25,22 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
         }
         return loadManifestItem(item, basePath, fileProvider, diags)
     }
+    async function loadTextFile(href: string) {
+        const basePath = await packageBasePath()
+        if (basePath == undefined) {
+            return undefined
+        }
+        const fullPath = pathRelativeTo(basePath, href)
+        return fileProvider.readText(fullPath, diags)
+    }
+    async function loadBinaryFile(href: string) {
+        const basePath = await packageBasePath()
+        if (basePath == undefined) {
+            return undefined
+        }
+        const fullPath = pathRelativeTo(basePath, href)
+        return fileProvider.readBinary(fullPath, diags)
+    }
 
     return {
         metadata: lazy(async () => {
@@ -34,6 +51,8 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
         }),
         documents,
         loadItem,
+        loadTextFile,
+        loadBinaryFile,
         async itemForHref(href: string) {
             const { content } = await documents.package() ?? {}
             if (content == undefined) {
