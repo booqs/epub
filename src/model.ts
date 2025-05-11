@@ -46,6 +46,7 @@ export type PackageDocument = {
 export type KnownMetadataKey = 'title' | 'creator' | 'subject' | 'description' | 'publisher' | 'contributor' | 'date' | 'type' | 'format' | 'identifier' | 'coverage' | 'source' | 'relation' | 'rights'
 export type PackageMetadata = {
     meta?: Meta[],
+    link?: MetadataLink[],
 } & {
     [key in KnownMetadataKey]?: {
         '@id'?: string,
@@ -55,6 +56,14 @@ export type PackageMetadata = {
         '@role'?: string,
         '#text': string,
     }[]
+}
+export type MetadataLink = {
+    '@href': string,
+    '@rel': string,
+    '@media-type'?: LinkMediaType,
+    '@id'?: string,
+    '@properties'?: string,
+    '@refines'?: string,
 }
 export type Meta = Opf2Meta | Opf3Meta
 export type MetaProperty = string
