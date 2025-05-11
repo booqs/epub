@@ -1,4 +1,4 @@
-import { Diagnoser } from './diagnostic'
+import { Diagnoser } from './common'
 import { NavDocument, NavOl, NavPoint, NcxDocument, PageTarget } from './model'
 import { UnvalidatedXml } from './xml'
 

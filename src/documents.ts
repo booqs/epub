@@ -1,8 +1,7 @@
-import { Diagnoser } from './diagnostic'
-import { FileProvider } from './common'
+import { FileProvider, Diagnoser } from './common'
 import { ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument } from './model'
 import { loadManifestItem } from './manifest'
-import { getBasePath, lazy } from './utils'
+import { getBasePath, lazy, scoped } from './utils'
 import { parseXml, UnvalidatedXml, XmlNode, Unvalidated } from './xml'
 
 export type Documents = {
@@ -21,14 +20,14 @@ type DocumentData<Content> = {
     fullPath: string,
     content: Content,
 }
-export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser) {
+export function epubDocumentLoader(fileProvider: FileProvider, diags?: Diagnoser) {
     const container = lazy(() => 
         loadXmlData(fileProvider, 'META-INF/container.xml', false, diags)
     )
     const pkg = lazy(async () => {
         const containerData = await container()
         if (containerData == undefined) {
-            diags.push('container is missing')
+            diags?.push('container is missing')
             return undefined
         }
         return loadPackageData(containerData.content, fileProvider, diags)
@@ -50,7 +49,6 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser)
         nav: lazy(async () => {
             const packageData = await pkg()
             if (packageData == undefined) {
-                diags.push('package is missing')
                 return undefined
             }
             const packageBasePath = getBasePath(packageData.fullPath)
@@ -59,7 +57,6 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser)
         ncx: lazy(async () => {
             const packageData = await pkg()
             if (packageData == undefined) {
-                diags.push('package is missing')
                 return undefined
             }
             const packageBasePath = getBasePath(packageData.fullPath)
@@ -68,15 +65,16 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags: Diagnoser)
     }
 }
 
-async function loadMimetypeData(fileProvider: FileProvider, diags: Diagnoser) {
+async function loadMimetypeData(fileProvider: FileProvider, diags?: Diagnoser) {
+    diags = diags && scoped(diags, 'loadMimetypeData')
     const fullPath = 'mimetype'
     const content = await fileProvider.readText(fullPath, diags) as Unvalidated<'application/epub+zip'>
     if (content == undefined) {
-        diags.push(`${fullPath} is missing`)
+        diags?.push(`${fullPath} is missing`)
         return undefined
     }
     if (content !== 'application/epub+zip') {
-        diags.push(`mimetype is not application/epub+zip: ${content}`)
+        diags?.push(`mimetype is not application/epub+zip: ${content}`)
     }
     return {
         fullPath,
@@ -84,10 +82,11 @@ async function loadMimetypeData(fileProvider: FileProvider, diags: Diagnoser) {
     }
 }
 
-async function loadPackageData(container: UnvalidatedXml<ContainerDocument>, fileProvider: FileProvider, diags: Diagnoser) {
+async function loadPackageData(container: UnvalidatedXml<ContainerDocument>, fileProvider: FileProvider, diags?: Diagnoser) {
+    diags = diags && scoped(diags, 'loadPackageData')
     const [rootfile] = container?.container?.[0]?.rootfiles?.[0]?.rootfile ?? []
     if (!rootfile) {
-        diags.push({
+        diags?.push({
             message: 'container is missing rootfile',
             data: container
         })
@@ -95,20 +94,21 @@ async function loadPackageData(container: UnvalidatedXml<ContainerDocument>, fil
     }
     const fullPath = rootfile['@full-path']
     if (fullPath == undefined) {
-        diags.push('rootfile is missing @full-path')
+        diags?.push('rootfile is missing @full-path')
         return undefined
     }
     if (fullPath == undefined) {
-        diags.push('container is missing package full path')
+        diags?.push('container is missing package full path')
         return undefined
     }
     return loadXmlData<PackageDocument>(fileProvider, fullPath, false, diags)
 }
 
-async function loadNavData(document: UnvalidatedXml<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<DocumentData<UnvalidatedXml<NavDocument>> | undefined> {
+async function loadNavData(document: UnvalidatedXml<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags?: Diagnoser): Promise<DocumentData<UnvalidatedXml<NavDocument>> | undefined> {
+    diags = diags && scoped(diags, 'loadNavData')
     const manifestItems = document.package?.[0]?.manifest?.[0]?.item
     if (manifestItems == undefined) {
-        diags.push({
+        diags?.push({
             message: 'package is missing manifest items',
             data: document,
         })
@@ -120,21 +120,21 @@ async function loadNavData(document: UnvalidatedXml<PackageDocument>, packageBas
     }
     const loaded = await loadManifestItem(tocItem, packageBasePath, fileProvider, diags)
     if (loaded == undefined) {
-        diags.push({
+        diags?.push({
             message: 'failed to load nav item',
             data: tocItem,
         })
         return undefined
     } else if (typeof loaded.content !== 'string') {
-        diags.push({
+        diags?.push({
             message: 'nav item content is not a string',
             data: loaded,
         })
         return undefined
     }
-    const parsed = parseXml(loaded.content, diags.scope('nav'))
+    const parsed = parseXml(loaded.content, diags)
     if (parsed === undefined) {
-        diags.push({
+        diags?.push({
             message: 'failed to parse nav item content',
             data: loaded,
         })
@@ -146,29 +146,30 @@ async function loadNavData(document: UnvalidatedXml<PackageDocument>, packageBas
     }
 }
 
-async function loadNcxData(document: UnvalidatedXml<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags: Diagnoser): Promise<DocumentData<UnvalidatedXml<NcxDocument>> | undefined> {
+async function loadNcxData(document: UnvalidatedXml<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags?: Diagnoser): Promise<DocumentData<UnvalidatedXml<NcxDocument>> | undefined> {
+    diags = diags && scoped(diags, 'loadNcxData')
     const ncxId = document?.package?.[0].spine?.[0]?.['@toc']
     if (ncxId == undefined) {
         return undefined
     }
     const item = document?.package?.[0].manifest?.[0]?.item?.find(i => i['@id'] === ncxId)
     if (item == undefined) {
-        diags.push(`failed to find manifest ncx item for id: ${ncxId}`)
+        diags?.push(`failed to find manifest ncx item for id: ${ncxId}`)
         return undefined
     }
     const ncxItem = await loadManifestItem(item, packageBasePath, fileProvider, diags)
     if (ncxItem == undefined) {
-        diags.push(`failed to load ncx item for id: ${ncxId}`)
+        diags?.push(`failed to load ncx item for id: ${ncxId}`)
         return undefined
     }
     const ncxContent = ncxItem.content
     if (typeof ncxContent !== 'string') {
-        diags.push('ncx content is not a string')
+        diags?.push('ncx content is not a string')
         return undefined
     }
-    const parsed = parseXml(ncxContent, diags.scope('ncx'))
+    const parsed = parseXml(ncxContent, diags)
     if (parsed == undefined) {
-        diags.push('failed to parse ncx content')
+        diags?.push('failed to parse ncx content')
         return undefined
     }
     return {
@@ -177,17 +178,17 @@ async function loadNcxData(document: UnvalidatedXml<PackageDocument>, packageBas
     }
 }
 
-async function loadXmlData<T extends XmlNode>(fileProvider: FileProvider, fullPath: string, optional: boolean, diags: Diagnoser): Promise<DocumentData<UnvalidatedXml<T>> | undefined> {
+async function loadXmlData<T extends XmlNode>(fileProvider: FileProvider, fullPath: string, optional: boolean, diags?: Diagnoser): Promise<DocumentData<UnvalidatedXml<T>> | undefined> {
     const xmlFile = await fileProvider.readText(fullPath, diags)
     if (xmlFile == undefined) {
         if (!optional) {
-            diags.push(`${fullPath} is missing`)
+            diags?.push(`${fullPath} is missing`)
         }
         return undefined
     }
     const xml = parseXml(xmlFile, diags)
     if (xml == undefined) {
-        diags.push(`Failed to parse xml: ${fullPath}`)
+        diags?.push(`Failed to parse xml: ${fullPath}`)
         return undefined
     } else {
         return {

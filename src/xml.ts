@@ -1,5 +1,5 @@
 import { XMLParser } from 'fast-xml-parser'
-import { Diagnoser } from './diagnostic'
+import { Diagnoser } from './common'
 
 export type XmlNode = XmlText & XmlAttributes & XmlContainer
 export type XmlAttributes = {
@@ -39,9 +39,9 @@ export type HtmlNode = {
     '#text': string,
 }
 
-export function parseXml(xml: string | undefined, diags: Diagnoser): XmlNode | undefined {
+export function parseXml(xml: string | undefined, diags?: Diagnoser): XmlNode | undefined {
     if (xml === undefined) {
-        diags.push('XML is undefined')
+        diags?.push('XML is undefined')
         return undefined
     }
     const parser = new XMLParser({
@@ -60,7 +60,7 @@ export function parseXml(xml: string | undefined, diags: Diagnoser): XmlNode | u
         const fast: XmlNode = parser.parse(xml)
         return fast
     } catch (e) {
-        diags.push({
+        diags?.push({
             message: 'Failed to parse XML',
             data: {
                 error: e,

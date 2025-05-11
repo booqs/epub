@@ -1,3 +1,5 @@
+import { Diagnoser } from './common'
+
 export function lazy<T>(fn: () => T): () => T {
     let stored: {value: T} | undefined
     return () => {
@@ -19,4 +21,14 @@ export function getBasePath(path: string): string {
 
 export function pathRelativeTo(base: string, path: string): string {
     return base + path
+}
+
+export function scoped(diagnoser: Diagnoser, label: string): Diagnoser {
+    const scoped: Diagnoser = []
+    diagnoser.push({
+        message: `Scope: ${label}`,
+        severity: 'info',
+        inner: scoped,
+    })
+    return scoped
 }

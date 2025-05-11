@@ -1,15 +1,14 @@
-import { Diagnoser, diagnoser } from './diagnostic'
-import { FileProvider } from './common'
+import { Diagnoser, FileProvider } from './common'
 import { ManifestItem, PackageDocument } from './model'
 import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
-import { getBasePath, lazy } from './utils'
+import { getBasePath, lazy, scoped } from './utils'
 import { epubDocumentLoader } from './documents'
 import { extractTocFromNav, extractTocFromNcx } from './toc'
 import { extractMetadata } from './metadata'
 import { UnvalidatedXml } from './xml'
 
 export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: Diagnoser) {
-    const diags = optDiags?.scope('open epub') ?? diagnoser('open epub')
+    const diags = optDiags ? scoped(optDiags, 'openEpub') : []
     const documents = epubDocumentLoader(fileProvider, diags)
     const packageBasePath = lazy(async () => {
         const { fullPath } = await documents.package() ?? {}
@@ -81,7 +80,7 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
             return undefined
         }),
         diagnostics() {
-            return diags.all()
+            return diags
         },
     }
 }

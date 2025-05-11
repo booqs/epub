@@ -1,4 +1,3 @@
 export * from './model'
-export * from './diagnostic'
-export { FileProvider } from './common'
+export { FileProvider, Diagnoser, Diagnostic } from './common'
 export { openEpub } from './open'

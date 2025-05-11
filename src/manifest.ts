@@ -1,7 +1,6 @@
-import { Diagnoser } from './diagnostic'
-import { FileProvider } from './common'
+import { Diagnoser, FileProvider } from './common'
 import { BinaryItemMediaType, ManifestItem, PackageDocument, TextItemMediaType } from './model'
-import { pathRelativeTo } from './utils'
+import { pathRelativeTo, scoped } from './utils'
 import { UnvalidatedXml } from './xml'
 
 export type PackageItem<Binary> = TextItem | BinaryItem<Binary> | UnknownItem
@@ -44,11 +43,11 @@ export function manifestItemForId(packageDocument: UnvalidatedXml<PackageDocumen
     return manifestItem
 }
 
-export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem>, basePath: string, fileProvider: FileProvider<Binary>, diags: Diagnoser): Promise<PackageItem<Binary> | undefined> {
-    diags = diags.scope(`manifest item: ${item['@id']}`)
+export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem>, basePath: string, fileProvider: FileProvider<Binary>, diags?: Diagnoser): Promise<PackageItem<Binary> | undefined> {
+    diags = diags && scoped(diags, `loadManifestItem: href=${item['@href']}`)
     const href = item['@href']
     if (href == undefined) {
-        diags.push('manifest item is missing @href')
+        diags?.push('manifest item is missing @href')
         return undefined
     }
     const fullPath = sanitizeHref(pathRelativeTo(basePath, href))
@@ -59,7 +58,7 @@ export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem
     case 'text/css': {
         const content = await fileProvider.readText(fullPath, diags)
         if (content == undefined) {
-            diags.push(`failed to read text file ${fullPath}, base: ${basePath}`)
+            diags?.push(`failed to read text file ${fullPath}, base: ${basePath}`)
             return undefined
         }
         return {
@@ -75,7 +74,7 @@ export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem
     case 'image/gif': case 'image/svg+xml': {
         const content = await fileProvider.readBinary(fullPath, diags)
         if (content == undefined) {
-            diags.push(`failed to read binary file ${fullPath}`)
+            diags?.push(`failed to read binary file ${fullPath}`)
             return undefined
         }
         return {
@@ -87,10 +86,10 @@ export async function loadManifestItem<Binary>(item: UnvalidatedXml<ManifestItem
         }
     }
     default: {
-        diags.push(`unexpected item: ${item['@media-type']}`)
+        diags?.push(`unexpected item: ${item['@media-type']}`)
         const content = await fileProvider.readBinary(fullPath, diags)
         if (content == undefined) {
-            diags.push(`failed to read binary file ${fullPath}`)
+            diags?.push(`failed to read binary file ${fullPath}`)
             return undefined
         }
         return {

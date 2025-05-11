@@ -1,4 +1,4 @@
-import { Diagnoser } from './diagnostic'
+import { Diagnoser } from './common'
 import { Opf2Meta, PackageDocument } from './model'
 import { UnvalidatedXml } from './xml'
 
