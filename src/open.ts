@@ -106,22 +106,25 @@ function extractSpine(document: UnvalidatedXml<PackageDocument>, diags: Diagnose
         })
         return
     }
-    return spineItems.map(spineItem => {
-        const idref = spineItem['@idref']
-        if (idref == undefined) {
-            diags.push({
-                message: 'spine item is missing idref',
-                data: spineItem,
-            })
-            return undefined
-        }
-        const manifestItem = manifestItemForId(document, idref, diags)
-        if (manifestItem == undefined) {
-            return undefined
-        }
-        return {
-            spineItem,
-            manifestItem,
-        }
-    }).filter(i => i !== undefined)
+    const result = spineItems
+        .map(spineItem => {
+            const idref = spineItem['@idref']
+            if (idref == undefined) {
+                diags.push({
+                    message: 'spine item is missing idref',
+                    data: spineItem,
+                })
+                return undefined
+            }
+            const manifestItem = manifestItemForId(document, idref, diags)
+            if (manifestItem == undefined) {
+                return undefined
+            }
+            return {
+                spineItem,
+                manifestItem,
+            }
+        })
+        .filter(spineItem => spineItem != undefined)
+    return result
 }

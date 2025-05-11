@@ -95,12 +95,13 @@ export type PackageSpine = {
     '@id'?: string,
     '@toc'?: string,
     '@page-progression-direction'?: ContentDirection,
-    itemref: {
-        '@idref': string,
-        '@linear'?: 'yes' | 'no',
-        '@id'?: string,
-        '@properties'?: string,
-    }[],
+    itemref: SpineItem[],
+}
+export type SpineItem = {
+    '@idref': string,
+    '@linear'?: 'yes' | 'no',
+    '@id'?: string,
+    '@properties'?: string,
 }
 
 export type CollectionRole = string
