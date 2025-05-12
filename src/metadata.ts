@@ -56,7 +56,7 @@ export function extractMetadata(document: UnvalidatedXml<PackageDocument>, diags
     }
     for (const m of (meta ?? [])) {
         const { '@name': name, '@content': content } = (m as UnvalidatedXml<Opf2Meta>)
-        if (name && content) {
+        if (name !== undefined && content !== undefined) {
             addMetadata(name, [{ '#text': content }])
             continue
         }
