@@ -29,6 +29,7 @@ export function resolveHref(basePath: string, href: string): string {
 export function scoped(diagnoser: Diagnoser, label: string): Diagnoser {
     const inner: Diagnostic[] = []
     const scope: Diagnostic = {
+        kind: 'scope',
         label,
         inner,
     }
@@ -39,22 +40,22 @@ export function scoped(diagnoser: Diagnoser, label: string): Diagnoser {
 export function flattenDiags(diags: Diagnoser): Diagnoser {
     const flattened: Diagnoser = []
     for (const diag of diags) {
-        if (typeof diag == 'string') {
-            flattened.push(diag)
-        } else if (diag.label != undefined) {
-            flattened.push(...flattenDiags(diag.inner.map(d => {
-                if (typeof d == 'string') {
-                    return {
-                        message: d,
-                        scope: [diag.label],
+        if (diag.kind === 'scope') {
+            const inner = flattenDiags(diag.inner)
+                .map(d => {
+                    if (typeof d === 'string') {
+                        return {
+                            message: d,
+                            scope: [diag.label],
+                        }
+                    } else {
+                        return {
+                            ...d,
+                            scope: [diag.label, ...(d.scope ?? [])],
+                        }
                     }
-                } else {
-                    return {
-                        ...d,
-                        scope: [diag.label, ...(d.scope ?? [])],
-                    }
-                }
-            })))
+                })
+            flattened.push(...inner)
         } else {
             flattened.push(diag)
         }

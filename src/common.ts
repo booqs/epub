@@ -1,5 +1,6 @@
 export type Diagnostic = DiagnosticString | DiagnosticObject | DiagnosticScope
 export type DiagnosticObject = {
+    kind?: undefined,
     message: string,
     data?: any,
     severity?: DiagnosticSeverity,
@@ -8,14 +9,16 @@ export type DiagnosticObject = {
     inner?: undefined,
 }
 export type DiagnosticScope = {
+    kind: 'scope',
     message?: undefined,
     data?: undefined,
-    severity?: DiagnosticSeverity,
+    severity?: undefined,
     scope?: string[],
     label: string,
     inner: Diagnostic[],
 }
 export type DiagnosticString = string & {
+    kind?: undefined,
     message?: undefined,
     data?: undefined,
     severity?: undefined,
