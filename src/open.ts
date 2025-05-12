@@ -156,6 +156,15 @@ export async function loadEpub<Binary>(fileProvider: FileProvider<Binary>, diags
         })
     )).filter(item => item != undefined)
 
+    const spine = extractSpine(packageDocument, diags)
+    const loadedSpineItems = spine.map(({spineItem, manifestItem}) => {
+        const loadedItem = loadedManifestItems.find(item => item?.item['@id'] == manifestItem['@id'])
+        return {
+            spineItem,
+            manifestItem: loadedItem,
+        }
+    }).filter(item => item.manifestItem != undefined)
+
     const navigations: Navigation[] = []
     const {content: navDocument} = await documents.nav() ?? {}
     if (navDocument != undefined) {
@@ -181,7 +190,7 @@ export async function loadEpub<Binary>(fileProvider: FileProvider<Binary>, diags
         metadata: extractMetadata(packageDocument, diags),
         coverItem: extractCoverItem(packageDocument, diags),
         manifest: loadedManifestItems,
-        spine: extractSpine(packageDocument, diags),
+        spine: loadedSpineItems,
         navigations,
         toc,
         documents: {
@@ -325,8 +334,15 @@ function extractSpine(document: UnvalidatedXml<PackageDocument>, diags?: Diagnos
                 })
                 return undefined
             }
-            const manifestItem = manifestItemForId(document, idref, diags)
+            const manifestItem = manifestItemForId(document, idref)
             if (manifestItem == undefined) {
+                diags?.push({
+                    message: 'spine item idref does not match any manifest item',
+                    data: {
+                        spineItem,
+                        idref,
+                    },
+                })
                 return undefined
             }
             return {
