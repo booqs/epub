@@ -61,9 +61,9 @@ export function extractMetadata(document: UnvalidatedXml<PackageDocument>, diags
             continue
         }
         const { '@property': property, '@refines': refines, '#text': text } = (m as UnvalidatedXml<Opf3Meta>)
-        if (!text) {
+        if (text === undefined) {
             diags?.push({
-                message: 'metadata is missing text',
+                message: 'meta elements is missing text',
                 data: m,
             })
             continue
