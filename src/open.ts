@@ -66,7 +66,7 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
             const {content} = await documents.package() ?? {}
             return content
                 ? extractMetadata(content, diags)
-                : {}
+                : undefined
         }),
         documents() {
             return documents
@@ -78,7 +78,7 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
             const {content} = await documents.package() ?? {}
             return content
                 ? extractCoverItem(content, diags)
-                : {}
+                : undefined
         }),
         async itemForHref(href: string) {
             const { content } = await documents.package() ?? {}
