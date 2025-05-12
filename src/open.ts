@@ -61,7 +61,18 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, diags?: Dia
     })
 
     return {
-        // TODO: support unique identifier
+        version: lazy(async () => {
+            const {content} = await documents.package() ?? {}
+            return content
+                ? extractVersion(content, diags)
+                : undefined
+        }),
+        uniqueIdentifier: lazy(async () => {
+            const {content} = await documents.package() ?? {}
+            return content
+                ? extractUniqueIdentifier(content, diags)
+                : undefined
+        }),
         metadata: lazy(async () => {
             const {content} = await documents.package() ?? {}
             return content
@@ -121,6 +132,70 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, diags?: Dia
             return diags
         },
     }
+}
+
+function extractVersion(document: UnvalidatedXml<PackageDocument>, diags?: Diagnoser) {
+    const version = document.package?.[0]?.['@version']
+    if (version == undefined) {
+        diags?.push({
+            message: 'package is missing version',
+            data: document,
+        })
+        return undefined
+    }
+    return version
+}
+
+function extractUniqueIdentifier(document: UnvalidatedXml<PackageDocument>, diags?: Diagnoser) {
+    // Epub 3
+    const identifierId = document.package?.[0]?.['@unique-identifier']
+    if (identifierId !== undefined) {
+        const identifier = document.package?.[0]?.metadata?.[0]?.identifier?.find(item => item['@id'] == identifierId)
+        if (identifier == undefined) {
+            diags?.push({
+                message: 'package is missing metadata specified by unique identifier attribute',
+                data: {
+                    metadata: document.package?.[0]?.metadata,
+                    uniqueIdentifier: identifierId,
+                },
+            })
+            return undefined
+        }
+        const uniqueIdentifier = identifier['#text']
+        if (uniqueIdentifier == undefined) {
+            diags?.push({
+                message: 'package unique identifier is missing text',
+                data: identifier,
+            })
+            return undefined
+        }
+        return uniqueIdentifier
+    }
+
+    // Epub 2
+    const identifiers = document.package?.[0]?.metadata?.[0]?.meta?.filter(item => item['@name'] == 'dtb:id')
+    if (identifiers == undefined || identifiers.length == 0) {
+        diags?.push({
+            message: 'package is missing unique identifier attribute or meta with @name="dtb:id"',
+            data: document,
+        })
+        return undefined
+    }
+    if (identifiers.length > 1) {
+        diags?.push({
+            message: 'package has multiple unique identifiers',
+            data: identifiers,
+        })
+    }
+    const uniqueIdentifier = identifiers[0]['@content']
+    if (uniqueIdentifier == undefined) {
+        diags?.push({
+            message: 'package unique identifier meta element is missing content',
+            data: identifiers[0],
+        })
+        return undefined
+    }
+    return uniqueIdentifier
 }
 
 function extractCoverItem(document: UnvalidatedXml<PackageDocument>, diags?: Diagnoser) {
