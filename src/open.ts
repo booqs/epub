@@ -1,15 +1,14 @@
 import { Diagnoser, FileProvider } from './common'
 import { ManifestItem, PackageDocument, SpineItem } from './model'
 import { loadManifestItem, manifestItemForHref, manifestItemForId } from './manifest'
-import { getBasePath, lazy, resolveHref, scoped } from './utils'
+import { getBasePath, lazy, resolveHref } from './utils'
 import { epubDocumentLoader } from './documents'
 import { extractNavigationsFromNav, extractTocNavigationFromNcx, Navigation } from './toc'
 import { extractMetadata } from './metadata'
 import { UnvalidatedXml } from './xml'
 
 export type Epub<Binary> = ReturnType<typeof openEpub<Binary>>
-export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: Diagnoser) {
-    const diags = optDiags ? scoped(optDiags, 'openEpub') : []
+export function openEpub<Binary>(fileProvider: FileProvider<Binary>, diags?: Diagnoser) {
     const documents = epubDocumentLoader(fileProvider, diags)
 
     const packageBasePath = lazy(async () => {
@@ -62,6 +61,7 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
     })
 
     return {
+        // TODO: support unique identifier
         metadata: lazy(async () => {
             const {content} = await documents.package() ?? {}
             return content
@@ -113,7 +113,7 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
             if (toc != undefined) {
                 return toc
             } else {
-                diags.push('failed to find toc in nav or ncx')
+                diags?.push('failed to find toc in nav or ncx')
                 return undefined
             }
         }),
@@ -123,12 +123,12 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, optDiags?: 
     }
 }
 
-function extractCoverItem(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser) {
+function extractCoverItem(document: UnvalidatedXml<PackageDocument>, diags?: Diagnoser) {
     let coverItem = document.package?.[0]?.manifest?.[0]?.item?.find(item => item['@properties']?.includes('cover-image'))
     if (coverItem == undefined) {
         const coverMeta = document.package?.[0]?.metadata?.[0]?.meta?.find(item => item['@name'] == 'cover')
         if (coverMeta == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'package is missing cover item',
                 data: document,
                 severity: 'info',
@@ -137,7 +137,7 @@ function extractCoverItem(document: UnvalidatedXml<PackageDocument>, diags: Diag
         }
         const idref = coverMeta['@content']
         if (idref == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'cover meta is missing content',
                 data: coverMeta,
             })
@@ -145,7 +145,7 @@ function extractCoverItem(document: UnvalidatedXml<PackageDocument>, diags: Diag
         }
         coverItem = document.package?.[0]?.manifest?.[0]?.item?.find(item => item['@id'] == idref)
         if (coverItem == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'package is missing cover item specified by meta',
                 data: document,
             })
@@ -156,10 +156,10 @@ function extractCoverItem(document: UnvalidatedXml<PackageDocument>, diags: Diag
     return coverItem
 }
 
-function extractManifestItems(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser) {
+function extractManifestItems(document: UnvalidatedXml<PackageDocument>, diags?: Diagnoser) {
     const items = document.package?.[0]?.manifest?.[0]?.item
     if (items == undefined) {
-        diags.push({
+        diags?.push({
             message: 'package is missing manifest items',
             data: document,
         })
@@ -168,13 +168,13 @@ function extractManifestItems(document: UnvalidatedXml<PackageDocument>, diags: 
     return items
 }
 
-function extractSpine(document: UnvalidatedXml<PackageDocument>, diags: Diagnoser): Array<{
+function extractSpine(document: UnvalidatedXml<PackageDocument>, diags?: Diagnoser): Array<{
     spineItem: UnvalidatedXml<SpineItem>,
     manifestItem: UnvalidatedXml<ManifestItem>,
 }> {
     const spineItems = document.package?.[0]?.spine?.[0]?.itemref
     if (spineItems == undefined) {
-        diags.push({
+        diags?.push({
             message: 'package is missing spine items',
             data: document,
         })
@@ -184,7 +184,7 @@ function extractSpine(document: UnvalidatedXml<PackageDocument>, diags: Diagnose
         .map(spineItem => {
             const idref = spineItem['@idref']
             if (idref == undefined) {
-                diags.push({
+                diags?.push({
                     message: 'spine item is missing idref',
                     data: spineItem,
                 })

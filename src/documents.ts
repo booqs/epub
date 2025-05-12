@@ -3,7 +3,7 @@ import {
     ContainerDocument, EncryptionDocument, ManifestDocument, MetadataDocument, NavDocument, NcxDocument, PackageDocument, RightsDocument, SignaturesDocument,
 } from './model'
 import { loadManifestItem } from './manifest'
-import { getBasePath, lazy, scoped } from './utils'
+import { getBasePath, lazy } from './utils'
 import { parseXml, UnvalidatedXml, XmlNode, Unvalidated } from './xml'
 
 export type DocumentData<Content> = {
@@ -56,7 +56,6 @@ export function epubDocumentLoader(fileProvider: FileProvider, diags?: Diagnoser
 }
 
 async function loadMimetypeData(fileProvider: FileProvider, diags?: Diagnoser) {
-    diags = diags && scoped(diags, 'loadMimetypeData')
     const fullPath = 'mimetype'
     const content: Unvalidated<'application/epub+zip'> | undefined = await fileProvider.readText(fullPath, diags)
     if (content == undefined) {
@@ -73,7 +72,6 @@ async function loadMimetypeData(fileProvider: FileProvider, diags?: Diagnoser) {
 }
 
 async function loadPackageData(container: UnvalidatedXml<ContainerDocument>, fileProvider: FileProvider, diags?: Diagnoser) {
-    diags = diags && scoped(diags, 'loadPackageData')
     const [rootfile] = container?.container?.[0]?.rootfiles?.[0]?.rootfile ?? []
     if (!rootfile) {
         diags?.push({
@@ -95,7 +93,6 @@ async function loadPackageData(container: UnvalidatedXml<ContainerDocument>, fil
 }
 
 async function loadNavData(document: UnvalidatedXml<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags?: Diagnoser): Promise<DocumentData<UnvalidatedXml<NavDocument>> | undefined> {
-    diags = diags && scoped(diags, 'loadNavData')
     const manifestItems = document.package?.[0]?.manifest?.[0]?.item
     if (manifestItems == undefined) {
         diags?.push({
@@ -137,7 +134,6 @@ async function loadNavData(document: UnvalidatedXml<PackageDocument>, packageBas
 }
 
 async function loadNcxData(document: UnvalidatedXml<PackageDocument>, packageBasePath: string, fileProvider: FileProvider, diags?: Diagnoser): Promise<DocumentData<UnvalidatedXml<NcxDocument>> | undefined> {
-    diags = diags && scoped(diags, 'loadNcxData')
     const ncxId = document?.package?.[0].spine?.[0]?.['@toc']
     if (ncxId == undefined) {
         return undefined

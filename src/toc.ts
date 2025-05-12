@@ -12,26 +12,26 @@ export type Navigation = {
     type: string | undefined,
     items: NavigationItem[],
 }
-export function extractTocNavigationFromNcx(ncx: UnvalidatedXml<NcxDocument>, diags: Diagnoser): Navigation | undefined {
+export function extractTocNavigationFromNcx(ncx: UnvalidatedXml<NcxDocument>, diags?: Diagnoser): Navigation | undefined {
     const navMap = ncx.ncx?.[0]?.navMap
     if (navMap == undefined || navMap.length == 0) {
         const pageLists = ncx.ncx?.[0]?.pageList
         if (pageLists == undefined || pageLists.length == 0) {
-            diags.push({
+            diags?.push({
                 message: 'ncx is missing navMap and pageList',
                 data: ncx,
             })
             return undefined
         }
         if (pageLists.length > 1) {
-            diags.push({
+            diags?.push({
                 message: 'ncx has multiple pageLists',
                 data: ncx,
             })
         }
         const pageList = pageLists[0]
         if (!pageList.pageTarget?.length) {
-            diags.push({
+            diags?.push({
                 message: 'ncx pageList is missing pageTargets',
                 data: ncx,
             })
@@ -45,14 +45,14 @@ export function extractTocNavigationFromNcx(ncx: UnvalidatedXml<NcxDocument>, di
         }
     } else {
         if (navMap.length > 1) {
-            diags.push({
+            diags?.push({
                 message: 'ncx has multiple navMaps',
                 data: ncx,
             })
         }
         const navPoints = navMap[0].navPoint
         if (navPoints == undefined || navPoints.length == 0) {
-            diags.push({
+            diags?.push({
                 message: 'ncx navMap is missing navPoints',
                 data: ncx,
             })
@@ -67,11 +67,11 @@ export function extractTocNavigationFromNcx(ncx: UnvalidatedXml<NcxDocument>, di
     }
 }
 
-function* navPointsIterator(navPoints: UnvalidatedXml<NavPoint>[], level: number, diags: Diagnoser): Generator<NavigationItem> {
+function* navPointsIterator(navPoints: UnvalidatedXml<NavPoint>[], level: number, diags?: Diagnoser): Generator<NavigationItem> {
     for (const navPoint of navPoints) {
         const label = navPoint.navLabel?.[0]?.text?.[0]?.['#text']
         if (label == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'navPoints navPoint is missing label',
                 data: navPoint,
             })
@@ -79,7 +79,7 @@ function* navPointsIterator(navPoints: UnvalidatedXml<NavPoint>[], level: number
         }
         const src = navPoint.content?.[0]?.['@src']
         if (src == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'navPoints navPoint is missing content src',
                 data: navPoint,
             })
@@ -97,11 +97,11 @@ function* navPointsIterator(navPoints: UnvalidatedXml<NavPoint>[], level: number
     }
 }
 
-function* pageListIterator(pageTargets: UnvalidatedXml<PageTarget>[], diags: Diagnoser): Generator<NavigationItem> {
+function* pageListIterator(pageTargets: UnvalidatedXml<PageTarget>[], diags?: Diagnoser): Generator<NavigationItem> {
     for (const pageTarget of pageTargets) {
         const label = pageTarget.navLabel?.[0]?.text?.[0]?.['#text']
         if (label == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'pageList pageTarget is missing label',
                 data: pageTarget,
             })
@@ -109,7 +109,7 @@ function* pageListIterator(pageTargets: UnvalidatedXml<PageTarget>[], diags: Dia
         }
         const src = pageTarget.content?.[0]?.['@src']
         if (src == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'pageList pageTarget is missing content src',
                 data: pageTarget,
             })
@@ -135,19 +135,19 @@ export function extractTocNavigationFromNav(document: UnvalidatedXml<NavDocument
     return extractNavigationFromNavElement(nav, diags)
 }
 
-export function extractNavigationsFromNav(document: UnvalidatedXml<NavDocument>, diags: Diagnoser): Navigation[] {
+export function extractNavigationsFromNav(document: UnvalidatedXml<NavDocument>, diags?: Diagnoser): Navigation[] {
     const elements = document?.html?.[0]?.body?.[0]?.nav
     return elements?.map(nav => 
         extractNavigationFromNavElement(nav, diags)
     ).filter(nav => nav !== undefined) ?? []
 }
 
-function extractNavigationFromNavElement(nav: UnvalidatedXml<NavElement>, diags: Diagnoser): Navigation | undefined {
+function extractNavigationFromNavElement(nav: UnvalidatedXml<NavElement>, diags?: Diagnoser): Navigation | undefined {
     const headerElement = nav.h1 ?? nav.h2 ?? nav.h3 ?? nav.h4 ?? nav.h5 ?? nav.h6
     const title = headerElement?.[0]?.['#text']
     const ol = nav.ol
     if (ol === undefined) {
-        diags.push({
+        diags?.push({
             message: 'nav is missing ol',
             data: nav,
         })
@@ -160,14 +160,14 @@ function extractNavigationFromNavElement(nav: UnvalidatedXml<NavElement>, diags:
     }
 }
 
-function* olIterator(lis: UnvalidatedXml<NavOl>[], level: number, diags: Diagnoser): Generator<NavigationItem> {
+function* olIterator(lis: UnvalidatedXml<NavOl>[], level: number, diags?: Diagnoser): Generator<NavigationItem> {
     for (const { li } of lis) {
         if (li == undefined) {
             continue
         }
         const anchor = li[0]?.a?.[0]
         if (anchor == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'nav ol li is missing anchor',
                 data: li,
             })
@@ -175,14 +175,14 @@ function* olIterator(lis: UnvalidatedXml<NavOl>[], level: number, diags: Diagnos
         }
         const { '@href': href, '#text': label } = anchor
         if (href == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'nav ol li is missing href',
                 data: li,
             })
             continue
         }
         if (label == undefined) {
-            diags.push({
+            diags?.push({
                 message: 'nav ol li is missing label',
                 data: li,
             })
