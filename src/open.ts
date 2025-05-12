@@ -7,7 +7,7 @@ import { extractNavigationsFromNav, extractTocNavigationFromNcx, Navigation } fr
 import { extractMetadata } from './metadata'
 import { UnvalidatedXml } from './xml'
 
-export type Epub<Binary> = ReturnType<typeof openEpub<Binary>>
+export type EpubLoader<Binary> = ReturnType<typeof openEpub<Binary>>
 export function openEpub<Binary>(fileProvider: FileProvider<Binary>, diags?: Diagnoser) {
     const documents = epubDocumentLoader(fileProvider, diags)
 
