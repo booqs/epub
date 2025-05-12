@@ -44,15 +44,15 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, diags?: Dia
 
     const navigations = lazy(async () => {
         const navigations: Navigation[] = []
-        const {content: navContent} = await documents.nav() ?? {}
-        if (navContent != undefined) {
+        const {content: navDocument} = await documents.nav() ?? {}
+        if (navDocument != undefined) {
             navigations.push(
-                ...extractNavigationsFromNav(navContent, diags)
+                ...extractNavigationsFromNav(navDocument, diags)
             )
         }
-        const {content: ncxContent} = await documents.ncx() ?? {}
-        if (ncxContent != undefined) {
-            const toc = extractTocNavigationFromNcx(ncxContent, diags)
+        const {content: ncxDocument} = await documents.ncx() ?? {}
+        if (ncxDocument != undefined) {
+            const toc = extractTocNavigationFromNcx(ncxDocument, diags)
             if (toc != undefined) {
                 navigations.push(toc)
             }
@@ -79,32 +79,12 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, diags?: Dia
                 ? extractMetadata(content, diags)
                 : undefined
         }),
-        documents() {
-            return documents
-        },
-        loadItem,
-        loadTextFile,
-        loadBinaryFile,
         coverItem: lazy(async () => {
             const {content} = await documents.package() ?? {}
             return content
                 ? extractCoverItem(content, diags)
                 : undefined
         }),
-        async itemForHref(href: string) {
-            const { content } = await documents.package() ?? {}
-            if (content == undefined) {
-                return undefined
-            }
-            return manifestItemForHref(content, href, diags)
-        },
-        async itemForId(id: string) {
-            const {content} = await documents.package() ?? {}
-            if (content == undefined) {
-                return undefined
-            }
-            return manifestItemForId(content, id, diags)
-        },
         manifest: lazy(async () => {
             const {content} = await documents.package() ?? {}
             return content
@@ -128,9 +108,89 @@ export function openEpub<Binary>(fileProvider: FileProvider<Binary>, diags?: Dia
                 return undefined
             }
         }),
+        documents() {
+            return documents
+        },
+        async itemForHref(href: string) {
+            const { content } = await documents.package() ?? {}
+            if (content == undefined) {
+                return undefined
+            }
+            return manifestItemForHref(content, href, diags)
+        },
+        async itemForId(id: string) {
+            const {content} = await documents.package() ?? {}
+            if (content == undefined) {
+                return undefined
+            }
+            return manifestItemForId(content, id, diags)
+        },
+        loadItem,
+        loadTextFile,
+        loadBinaryFile,
         diagnostics() {
             return diags
         },
+    }
+}
+
+export type LoadedEpub<Binary> = ReturnType<typeof loadEpub<Binary>>
+export async function loadEpub<Binary>(fileProvider: FileProvider<Binary>, diags?: Diagnoser) {
+    const documents = epubDocumentLoader(fileProvider, diags)
+    const {content: containerDocument} = await documents.container() ?? {}
+    const packageData = await documents.package()
+    if (packageData == undefined) {
+        diags?.push('failed to load package document')
+        return undefined
+    }
+    const {
+        content: packageDocument,
+        fullPath: packageFullPath,
+    } = packageData
+    const basePath = getBasePath(packageFullPath)
+
+    const manifestItems = extractManifestItems(packageDocument, diags) ?? []
+    const loadedManifestItems = (await Promise.all(
+        manifestItems.map(async item => {
+            return loadManifestItem(item, basePath, fileProvider, diags)
+        })
+    )).filter(item => item != undefined)
+
+    const navigations: Navigation[] = []
+    const {content: navDocument} = await documents.nav() ?? {}
+    if (navDocument != undefined) {
+        navigations.push(
+            ...extractNavigationsFromNav(navDocument, diags)
+        )
+    }
+    const {content: ncxDocument} = await documents.ncx() ?? {}
+    if (ncxDocument != undefined) {
+        const toc = extractTocNavigationFromNcx(ncxDocument, diags)
+        if (toc != undefined) {
+            navigations.push(toc)
+        }
+    }
+    const toc = navigations.find(nav => nav.type == 'toc')
+    if (toc === undefined) {
+        diags?.push('failed to find toc in nav or ncx')
+    }
+
+    return {
+        version: extractVersion(packageDocument, diags),
+        uniqueIdentifier: extractUniqueIdentifier(packageDocument, diags),
+        metadata: extractMetadata(packageDocument, diags),
+        coverItem: extractCoverItem(packageDocument, diags),
+        manifest: loadedManifestItems,
+        spine: extractSpine(packageDocument, diags),
+        navigations,
+        toc,
+        documents: {
+            container: containerDocument,
+            package: packageDocument,
+            nav: navDocument,
+            ncx: ncxDocument,
+        },
+        diagnostics: diags,
     }
 }
 
