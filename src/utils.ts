@@ -1,5 +1,3 @@
-import { Diagnoser, Diagnostic } from './common'
-
 export function lazy<T>(fn: () => T): () => T {
     let stored: {value: T} | undefined
     return () => {
