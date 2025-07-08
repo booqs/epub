@@ -21,7 +21,20 @@ export function extractMetadata(document: UnvalidatedXml<PackageDocument>, diags
             result[key] = items
         }
     }
-    function refineMetadata(id: string, property: string, value: string) {
+    function refineMetadata(property: string, refines: string, text: string) {
+        if (!refines.startsWith('#')) {
+            diags?.push({
+                message: `refines attribute is not a valid id: ${refines}`,
+                data: metadata,
+            })
+            return
+        }
+        const id = refines.substring(1)
+        const colonIndex = property.indexOf(':')
+        property = colonIndex >= 0
+            ? property.substring(colonIndex + 1)
+            : property
+        const attribute = `@${property}`
         const item = Object.values(result).flat().find(i => i?.['@id'] == id)
         if (item == undefined) {
             diags?.push({
@@ -30,14 +43,14 @@ export function extractMetadata(document: UnvalidatedXml<PackageDocument>, diags
             })
             return
         }
-        if (item[property] !== undefined) {
+        if (item[attribute] !== undefined) {
             diags?.push({
-                message: `metadata item already has property ${property}: ${id}`,
+                message: `metadata item already has property ${attribute}: ${item[attribute]}`,
                 data: metadata,
             })
             return
         }
-        item[property] = value
+        item[attribute] = text
     }
     const { meta, link, ...rest } = metadata
     for (const [key, value] of Object.entries(rest)) {
@@ -63,25 +76,22 @@ export function extractMetadata(document: UnvalidatedXml<PackageDocument>, diags
         const { '@property': property, '@refines': refines, '#text': text } = (m as UnvalidatedXml<Opf3Meta>)
         if (text === undefined) {
             diags?.push({
-                message: 'meta elements is missing text',
+                message: 'OPF2 meta elements is missing text',
                 data: m,
             })
             continue
         }
-        if (property) {
-            if (refines) {
-                if (refines.startsWith('#')) {
-                    const id = refines.substring(1)
-                    refineMetadata(id, property, text)
-                } else {
-                    diags?.push({
-                        message: `refines attribute is not a valid id: ${refines}`,
-                        data: m,
-                    })
-                }
-            } else {
-                addMetadata(property, [{ '#text': text }])
-            }
+        if (property === undefined) {
+            diags?.push({
+                message: 'OPF2 meta element is missing property',
+                data: m,
+            })
+            continue
+        }
+        if (refines) {
+            refineMetadata(property, refines, text)
+        } else {
+            addMetadata(property, [{ '#text': text }])
         }
     }
     return result
