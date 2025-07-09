@@ -160,42 +160,44 @@ function extractNavigationFromNavElement(nav: UnvalidatedXml<NavElement>, diags?
     }
 }
 
-function* olIterator(lis: UnvalidatedXml<NavOl>[], level: number, diags?: Diagnoser): Generator<NavigationItem> {
-    for (const { li } of lis) {
-        if (li == undefined) {
+function* olIterator(ols: UnvalidatedXml<NavOl>[], level: number, diags?: Diagnoser): Generator<NavigationItem> {
+    for (const { li: lis } of ols) {
+        if (lis == undefined) {
             continue
         }
-        const anchor = li[0]?.a?.[0]
-        if (anchor == undefined) {
-            diags?.push({
-                message: 'nav ol li is missing anchor',
-                data: li,
-            })
-            continue
-        }
-        const { '@href': href, '#text': label } = anchor
-        if (href == undefined) {
-            diags?.push({
-                message: 'nav ol li is missing href',
-                data: li,
-            })
-            continue
-        }
-        if (label == undefined) {
-            diags?.push({
-                message: 'nav ol li is missing label',
-                data: li,
-            })
-            continue
-        }
-        yield {
-            label,
-            href,
-            level,
-        }
-        const children = li[0].ol
-        if (children) {
-            yield* olIterator(children, level + 1, diags)
+        for (const li of lis) {
+            const a = li.a?.[0]
+            if (a == undefined) {
+                diags?.push({
+                    message: 'nav ol li is missing anchor',
+                    data: li,
+                })
+                continue
+            }
+            const { '@href': href, '#text': label } = a
+            if (href == undefined) {
+                diags?.push({
+                    message: 'nav ol li is missing href',
+                    data: li,
+                })
+                continue
+            }
+            if (label == undefined) {
+                diags?.push({
+                    message: 'nav ol li is missing label',
+                    data: li,
+                })
+                continue
+            }
+            yield {
+                label,
+                href,
+                level,
+            }
+            const children = li.ol
+            if (children) {
+                yield* olIterator(children, level + 1, diags)
+            }
         }
     }
 }
