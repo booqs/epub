@@ -10,6 +10,8 @@ export type NavigationItem = {
 export type Navigation = {
     title?: string,
     type: string | undefined,
+    role?: string,
+    source: 'ncx' | 'nav',
     items: NavigationItem[],
 }
 export function extractTocNavigationFromNcx(ncx: UnvalidatedXml<NcxDocument>, diags?: Diagnoser): Navigation | undefined {
@@ -41,6 +43,7 @@ export function extractTocNavigationFromNcx(ncx: UnvalidatedXml<NcxDocument>, di
         return {
             title,
             type: 'toc',
+            source: 'ncx',
             items: [...pageListIterator(pageList.pageTarget, diags)],
         }
     } else {
@@ -62,6 +65,7 @@ export function extractTocNavigationFromNcx(ncx: UnvalidatedXml<NcxDocument>, di
         return {
             title,
             type: 'toc',
+            source: 'ncx',
             items: [...navPointsIterator(navPoints, 0, diags)],
         }
     }
@@ -156,6 +160,8 @@ function extractNavigationFromNavElement(nav: UnvalidatedXml<NavElement>, diags?
     return {
         title,
         type: nav['@type'],
+        role: nav['@role'],
+        source: 'nav',
         items: [...olIterator(ol, 0, diags)],
     }
 }
