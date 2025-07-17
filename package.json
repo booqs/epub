@@ -13,8 +13,14 @@
     "type": "git",
     "url": "git+https://github.com/booqs/epub.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "epub",
+    "epub parser",
+    "epubjs",
+    "booqs",
+    "typescript"
+  ],
+  "author": "Anton Shakirzianov",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/booqs/epub/issues"
